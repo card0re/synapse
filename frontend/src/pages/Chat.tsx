@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from "react"
+import React, { useEffect, useState, useRef, Fragment } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ShieldAlert } from "lucide-react"
 import toast from 'react-hot-toast'
-import { useWebSocket } from "../contexts/WebSocketContext" // 👈 Використовуємо глобальний сокет
+import { useWebSocket } from "../contexts/WebSocketContext"
 
 interface Message {
     id?: number; deal_id?: string; sender_id: string; receiver_id: string;
@@ -25,13 +25,12 @@ export default function Chat() {
     const [messages, setMessages] = useState<Message[]>([])
     const [newMessage, setNewMessage] = useState("")
 
-    // 👇 Стейт та рефи для статусу "друкує..." та textarea
     const [isPartnerTyping, setIsPartnerTyping] = useState(false)
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const lastTypingTimeRef = useRef<number>(0)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-    const { ws, lastMessage } = useWebSocket() // 👈 Беремо ws з глобального провайдера
+    const { ws, lastMessage } = useWebSocket()
 
     const [editingMsgId, setEditingMsgId] = useState<number | null>(null)
     const [replyingTo, setReplyingTo] = useState<Message | null>(null)
@@ -96,7 +95,6 @@ export default function Chat() {
         return () => window.removeEventListener("click", handleClick);
     }, []);
 
-    // 👇 ОБРОБКА ПОВІДОМЛЕНЬ ІЗ ГЛОБАЛЬНОГО КОНТЕКСТУ 👇
     useEffect(() => {
         if (!lastMessage || !myId) return;
 
@@ -107,7 +105,6 @@ export default function Chat() {
             return;
         }
 
-        // Ловимо статус "друкує..."
         if (data.type === "typing" && data.sender_id === partnerId) {
             setIsPartnerTyping(true);
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -146,13 +143,11 @@ export default function Chat() {
 
     useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages])
 
-    // 👇 ЛОГІКА ПОЛЯ ВВОДУ TEXTAREA 👇
     const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         setNewMessage(e.target.value)
         e.target.style.height = 'auto'
         e.target.style.height = `${e.target.scrollHeight}px`
 
-        // Відправляємо сигнал "друкує..." раз на 2 секунди
         if (ws && partnerId) {
             const now = Date.now()
             if (now - lastTypingTimeRef.current > 2000) {
@@ -190,7 +185,7 @@ export default function Chat() {
         ws.send(JSON.stringify(payload))
         setNewMessage("")
         setReplyingTo(null)
-        if (textareaRef.current) textareaRef.current.style.height = 'auto'; // Скидання висоти
+        if (textareaRef.current) textareaRef.current.style.height = 'auto';
     }
 
     const handleRightClick = (e: React.MouseEvent, msg: Message) => {
@@ -256,7 +251,7 @@ export default function Chat() {
     if (!myId) return <div className="p-8 text-center">Увійдіть в акаунт</div>
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans transition-colors duration-300 relative">
+        <div className="min-h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans transition-colors duration-300 relative">
 
             {confirmModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
@@ -308,7 +303,7 @@ export default function Chat() {
                 </div>
             )}
 
-            <div className="max-w-6xl mx-auto h-[85vh] flex gap-4">
+            <div className="max-w-6xl mx-auto h-[82vh] flex gap-4">
 
                 <Card className="w-1/3 hidden md:flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
                     <CardHeader className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-4">
@@ -392,45 +387,80 @@ export default function Chat() {
                                 <div className="bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/50 p-3 rounded-xl mb-6 shadow-sm mx-auto max-w-2xl flex items-start gap-3">
                                     <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
                                     <p className="text-xs text-amber-800 dark:text-amber-400/90 leading-relaxed text-center w-full pr-5">
-                                        <strong>Увага!</strong> Ніколи не діліться паролями, фінансовою інформацією чи точною адресою. Не переходьте за підозрілими посиланнями. Усі домовленості щодо уроків фіксуються виключно через інтерфейс платформи.
+                                        <strong>Увага!</strong> Ніколи не діліться паролями, фінансовою інформацією чи точною адресою. Не переходьте за підозрілими посиланнями.
                                     </p>
                                 </div>
 
                                 {messages.length === 0 ? (
                                     <div className="h-full flex items-center justify-center text-slate-400">Напишіть перше повідомлення 👋</div>
                                 ) : (
-                                    messages.map((msg, index) => {
-                                        const isMe = msg.sender_id === myId
-                                        return (
-                                            <div key={index} className={`flex ${isMe ? 'justify-end' : 'justify-start'} relative group`} onContextMenu={(e) => handleRightClick(e, msg)}>
-                                                <div className={`max-w-[75%] px-4 py-2 rounded-2xl relative ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-sm'}`}>
+                                    (() => {
+                                        let lastDate = "";
+                                        return messages.map((msg, index) => {
+                                            const isMe = msg.sender_id === myId;
+                                            const msgDate = new Date(msg.created_at);
+                                            const dateString = msgDate.toDateString();
 
-                                                    {msg.reply_to_text && (
-                                                        <div className={`mb-2 pl-2 border-l-2 text-xs opacity-80 ${isMe ? 'border-indigo-300 bg-indigo-700/30' : 'border-indigo-500 bg-slate-100 dark:bg-slate-700/50'} rounded-r-md py-1 pr-2`}>
-                                                            <div className="font-bold mb-0.5">Відповідь</div>
-                                                            <div className="truncate line-clamp-1">{msg.reply_to_text}</div>
+                                            let showDateDivider = false;
+                                            let dateLabel = "";
+
+                                            if (dateString !== lastDate) {
+                                                showDateDivider = true;
+                                                lastDate = dateString;
+                                                const today = new Date();
+                                                const yesterday = new Date(today);
+                                                yesterday.setDate(yesterday.getDate() - 1);
+
+                                                if (dateString === today.toDateString()) {
+                                                    dateLabel = "Сьогодні";
+                                                } else if (dateString === yesterday.toDateString()) {
+                                                    dateLabel = "Вчора";
+                                                } else {
+                                                    dateLabel = msgDate.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+                                                }
+                                            }
+
+                                            return (
+                                                <Fragment key={msg.id || index}>
+                                                    {showDateDivider && (
+                                                        <div className="flex justify-center my-6">
+                                                            <span className="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                                                                {dateLabel}
+                                                            </span>
                                                         </div>
                                                     )}
 
-                                                    <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+                                                    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} relative group`} onContextMenu={(e) => handleRightClick(e, msg)}>
+                                                        <div className={`max-w-[75%] px-4 py-2 rounded-2xl relative ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-sm'}`}>
 
-                                                    {msg.reaction && (
-                                                        <div className={`absolute -bottom-3 ${isMe ? '-left-2' : '-right-2'} bg-white dark:bg-slate-800 rounded-full px-1.5 py-0.5 shadow border border-slate-100 dark:border-slate-700 text-sm`}>
-                                                            {msg.reaction}
+                                                            {msg.reply_to_text && (
+                                                                <div className={`mb-2 pl-2 border-l-2 text-xs opacity-80 ${isMe ? 'border-indigo-300 bg-indigo-700/30' : 'border-indigo-500 bg-slate-100 dark:bg-slate-700/50'} rounded-r-md py-1 pr-2`}>
+                                                                    <div className="font-bold mb-0.5">Відповідь</div>
+                                                                    <div className="truncate line-clamp-1">{msg.reply_to_text}</div>
+                                                                </div>
+                                                            )}
+
+                                                            <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
+
+                                                            {msg.reaction && (
+                                                                <div className={`absolute -bottom-3 ${isMe ? '-left-2' : '-right-2'} bg-white dark:bg-slate-800 rounded-full px-1.5 py-0.5 shadow border border-slate-100 dark:border-slate-700 text-sm`}>
+                                                                    {msg.reaction}
+                                                                </div>
+                                                            )}
+
+                                                            <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                                                {msg.is_edited && <span className="text-[9px] italic mr-1">(редаговано)</span>}
+                                                                <p className="text-[10px]">
+                                                                    {new Date(msg.created_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                                                                </p>
+                                                                {isMe && <span className="text-[10px] font-bold tracking-tighter ml-1">{msg.is_read ? "✓✓" : "✓"}</span>}
+                                                            </div>
                                                         </div>
-                                                    )}
-
-                                                    <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
-                                                        {msg.is_edited && <span className="text-[9px] italic mr-1">(редаговано)</span>}
-                                                        <p className="text-[10px]">
-                                                            {new Date(msg.created_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
-                                                        </p>
-                                                        {isMe && <span className="text-[10px] font-bold tracking-tighter ml-1">{msg.is_read ? "✓✓" : "✓"}</span>}
                                                     </div>
-                                                </div>
-                                            </div>
-                                        )
-                                    })
+                                                </Fragment>
+                                            )
+                                        })
+                                    })()
                                 )}
                                 <div ref={messagesEndRef} />
                             </CardContent>
@@ -458,7 +488,6 @@ export default function Chat() {
                                         </div>
                                     )}
 
-                                    {/* 👇 ІНДИКАТОР ПЕЧАТУ 👇 */}
                                     {isPartnerTyping && (
                                         <div className="absolute -top-6 left-4 text-xs font-bold text-indigo-500 animate-pulse">
                                             {displayName} друкує...
@@ -466,7 +495,6 @@ export default function Chat() {
                                     )}
 
                                     <form onSubmit={sendMessage} className="flex w-full gap-2 items-end">
-                                        {/* 👇 TEXTAREA ЗАМІСТЬ INPUT 👇 */}
                                         <textarea
                                             ref={textareaRef}
                                             placeholder="Напишіть повідомлення... (Enter для відправки)"

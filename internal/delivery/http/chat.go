@@ -2,13 +2,15 @@ package http
 
 import (
 	"context"
+	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
 	"net/http"
+	"os"
+	"skillswap-irpin/internal/domain"
 	"sync"
 	"time"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
-	"skillswap-irpin/internal/domain"
 )
 
 var upgrader = websocket.Upgrader{
@@ -30,8 +32,34 @@ var rateLimiter = struct {
 }{lastMessage: make(map[string]time.Time)}
 
 func (h *Handler) WebSocketChat(c *gin.Context) {
-	userID := c.Query("user_id")
-	if userID == "" {
+	tokenString := c.Query("token")
+	if tokenString == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Токен не надано"})
+		return
+	}
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		secret := os.Getenv("JWT_SECRET_KEY")
+		return []byte(secret), nil
+	})
+
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Недійсний токен"})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Помилка читання токена"})
+		return
+	}
+
+	userID, ok := claims["user_id"].(string)
+	if !ok || userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Невалідний ID користувача"})
 		return
 	}
 

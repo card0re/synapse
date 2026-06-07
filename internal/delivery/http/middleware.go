@@ -72,3 +72,56 @@ func (h *Handler) AdminIdentity() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Потрібна авторизація"})
+			c.Abort()
+			return
+		}
+
+		parts := strings.Split(authHeader, " ")
+		if len(parts) != 2 || parts[0] != "Bearer" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неправильний формат токена"})
+			c.Abort()
+			return
+		}
+
+		tokenString := parts[1]
+		secret := os.Getenv("JWT_SECRET_KEY")
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Недійсний токен"})
+			c.Abort()
+			return
+		}
+
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if ok {
+			c.Set("userId", claims["user_id"])
+			c.Set("userRole", claims["role"])
+		}
+
+		c.Next()
+	}
+}
+
+func UserOwnershipMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		reqUserID := c.Param("id")
+		tokenUserID, exists := c.Get("userId")
+
+		if !exists || (reqUserID != tokenUserID && c.GetString("userRole") != "admin") {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ заборонено: ви не можете керувати чужим акаунтом"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
