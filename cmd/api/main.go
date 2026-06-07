@@ -25,7 +25,10 @@ func main() {
 		log.Println("⚠️ Попередження: файл .env не знайдено, перевірте налаштування")
 	}
 
-	dsn := "postgres://root:***REMOVED-DB-PASSWORD***@localhost:5432/skillswap?sslmode=disable"
+	dsn := os.Getenv("DATABASE_URL")
+	if dsn == "" {
+		dsn = "postgres://root:***REMOVED-DB-PASSWORD***@localhost:5432/skillswap?sslmode=disable"
+	}
 	db, err := sqlx.Connect("pgx", dsn)
 	if err != nil {
 		log.Fatalf("❌ Не удалось подключиться к БД: %v", err)

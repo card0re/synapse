@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ShieldAlert, MessageCircle } from "lucide-react"
+import { ShieldAlert, MessageCircle, Wallet } from "lucide-react"
 import toast from 'react-hot-toast'
 import ReportModal from "@/components/ReportModal"
 
@@ -21,12 +21,14 @@ export default function PublicProfile() {
     const [reviewCount, setReviewCount] = useState(0)
     const [loading, setLoading] = useState(true)
 
+    const [myBalance, setMyBalance] = useState<number | null>(null)
+
     const [reviewFilter, setReviewFilter] = useState<number | null>(null)
 
     const [reportData, setReportData] = useState<{type: 'user'|'skill'|'deal', id: string} | null>(null)
     const myId = localStorage.getItem("userId")
+    const token = localStorage.getItem("token")
 
-    // Допоміжна функція для кастомних сповіщень-підтверджень
     const confirmAction = (message: string, onConfirm: () => void) => {
         toast((t) => (
             <div className="flex flex-col gap-3 min-w-[260px] p-1">
@@ -58,17 +60,46 @@ export default function PublicProfile() {
                 toast.error("Помилка завантаження профілю")
                 setLoading(false)
             })
-    }, [id])
 
-    const handleCreateDeal = async (skillId: string) => {
-        const token = localStorage.getItem("token")
-        if (!myId || !token) { toast.error("Спочатку увійдіть в акаунт"); navigate("/login"); return; }
-        const res = await fetch(`http://localhost:3000/api/deals`, {
-            method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ skill_id: skillId, initiator_id: myId })
+        if (myId && token) {
+            fetch(`http://localhost:3000/api/users/profile/${myId}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data && data.balance_minutes !== undefined) {
+                        setMyBalance(data.balance_minutes)
+                    }
+                }).catch(e => console.error("Помилка завантаження балансу", e))
+        }
+    }, [id, myId, token])
+
+    const handleCreateDealClick = (skillId: string, price: number) => {
+        if (!myId || !token) {
+            toast.error("Спочатку увійдіть в акаунт");
+            navigate("/login");
+            return;
+        }
+
+        if (myBalance !== null && myBalance < price) {
+            toast.error("Недостатньо хвилин на балансі!");
+            return;
+        }
+
+        confirmAction(`Ви впевнені, що хочете відгукнутися на це оголошення? З вашого балансу буде списано ${price} хв.`, async () => {
+            const res = await fetch(`http://localhost:3000/api/deals`, {
+                method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ skill_id: skillId, initiator_id: myId })
+            })
+            if (res.ok) {
+                toast.success("Заявку успішно відправлено!");
+                navigate("/profile");
+            }
+            else {
+                const data = await res.json();
+                toast.error(data.error || "Помилка створення заявки");
+            }
         })
-        if (res.ok) { toast.success("Заявку успішно відправлено!"); navigate("/profile"); }
-        else { const data = await res.json(); toast.error(data.error || "Помилка створення заявки"); }
     }
 
     if (loading) return <div className="p-8 text-center text-slate-500">Завантаження...</div>
@@ -77,7 +108,6 @@ export default function PublicProfile() {
     const reviewCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
     reviews.forEach(r => { if (r.score >= 1 && r.score <= 5) reviewCounts[r.score as keyof typeof reviewCounts]++ })
     const filteredReviews = reviewFilter ? reviews.filter(r => r.score === reviewFilter) : reviews
-
     const unlockedAchievements = achievements.filter(a => a.is_unlocked);
 
     return (
@@ -85,6 +115,21 @@ export default function PublicProfile() {
             <div className="max-w-4xl mx-auto space-y-6">
 
                 <Button variant="outline" onClick={() => navigate(-1)} className="dark:border-slate-700 dark:text-slate-200 mb-2">← Назад</Button>
+
+                {myBalance !== null && user.id !== myId && (
+                    <div className="flex justify-between items-center bg-indigo-600 dark:bg-indigo-900 text-white p-6 rounded-3xl shadow-xl mb-6 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                        <div className="relative z-10">
+                            <h4 className="text-indigo-100 text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
+                                <Wallet size={16} /> Ваш баланс
+                            </h4>
+                            <div className="text-4xl font-black tracking-tight">{myBalance} <span className="text-lg text-indigo-200 font-bold">хвилин</span></div>
+                        </div>
+                        <div className="relative z-10 w-16 h-16 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner transform rotate-6">
+                            ⏳
+                        </div>
+                    </div>
+                )}
 
                 <Card className="border-none shadow-sm bg-white dark:bg-slate-900 overflow-hidden">
                     <div className="h-24 bg-gradient-to-r from-indigo-600 to-blue-500 opacity-20" />
@@ -99,7 +144,6 @@ export default function PublicProfile() {
                             </h1>
                             <p className="text-slate-500 mt-2 italic">{user.bio || "Користувач ще не додав біографію."}</p>
 
-                            {/* 👇 КНОПКИ ДІЙ: ЧАТ ТА СКАРГА 👇 */}
                             {user.id !== myId && (
                                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-4">
                                     <Button
@@ -119,7 +163,6 @@ export default function PublicProfile() {
                                 </div>
                             )}
 
-                            {/* БЕЙДЖИ (АЧИВКИ) */}
                             {unlockedAchievements.length > 0 && (
                                 <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-5">
                                     {unlockedAchievements.map(badge => (
@@ -171,7 +214,7 @@ export default function PublicProfile() {
                                     <div className="flex flex-col items-end gap-2 w-full md:w-auto">
                                         <span className="font-black text-indigo-600 dark:text-indigo-400 text-xl">{skill.price} <small className="text-xs text-slate-400 font-bold">хв</small></span>
                                         {user.id !== myId ? (
-                                            <Button onClick={() => confirmAction(`Ви впевнені, що хочете відгукнутися на це оголошення? З вашого балансу буде списано ${skill.price} хв.`, () => handleCreateDeal(skill.id))} className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md hover:shadow-lg transition-all rounded-xl">
+                                            <Button onClick={() => handleCreateDealClick(skill.id, skill.price)} className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-md hover:shadow-lg transition-all rounded-xl">
                                                 Відгукнутися
                                             </Button>
                                         ) : (

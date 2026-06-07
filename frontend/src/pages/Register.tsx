@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { GoogleLogin } from '@react-oauth/google'
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff } from "lucide-react" // 👈 Додали іконки
 import toast from 'react-hot-toast'
 
 export default function Register() {
@@ -15,8 +15,11 @@ export default function Register() {
     const [code, setCode] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
-    const [confirmPassword, setConfirmPassword] = useState("") // 👈 Новий стейт для підтвердження пароля
+    const [confirmPassword, setConfirmPassword] = useState("")
     const [username, setUsername] = useState("")
+
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
     const [loading, setLoading] = useState(false)
     const [agreed, setAgreed] = useState(false)
@@ -26,7 +29,6 @@ export default function Register() {
     const handleStandardRegister = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        // 👈 Перевірка збігу паролів для реєстрації по email
         if (loginMode === 'email') {
             if (password !== confirmPassword) {
                 toast.error("Паролі не співпадають!")
@@ -116,7 +118,6 @@ export default function Register() {
                 </CardHeader>
 
                 <CardContent className="space-y-6">
-
                     <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-xl gap-1">
                         <button
                             onClick={() => setLoginMode('google')}
@@ -152,9 +153,9 @@ export default function Register() {
                             <Label htmlFor="terms" className="cursor-pointer font-normal text-sm inline">
                                 Підтверджую, що мені виповнилося <strong>14 років</strong>, і я приймаю{' '}
                             </Label>
-                            <Link to="/terms" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold inline-block">Умови використання</Link>
+                            <Link to="/terms" className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold inline-block">Умови використання</Link>
                             {' '}та{' '}
-                            <Link to="/privacy" target="_blank" className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold inline-block">Політику конфіденційності</Link>.
+                            <Link to="/privacy" className="text-indigo-600 dark:text-indigo-400 hover:underline font-bold inline-block">Політику конфіденційності</Link>.
                         </div>
                     </div>
 
@@ -186,12 +187,23 @@ export default function Register() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="password">Пароль</Label>
-                                        <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-12 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+                                        {/* 👇 Око для першого пароля 👇 */}
+                                        <div className="relative">
+                                            <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required className="h-12 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white pr-10" />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
                                     </div>
-                                    {/* 👇 НОВЕ ПОЛЕ ДЛЯ ПОВТОРА ПАРОЛЯ 👇 */}
                                     <div className="space-y-2">
                                         <Label htmlFor="confirmPassword">Повторіть пароль</Label>
-                                        <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="h-12 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white" />
+                                        {/* 👇 Око для підтвердження пароля 👇 */}
+                                        <div className="relative">
+                                            <Input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="h-12 bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white pr-10" />
+                                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ) : loginMode === 'telegram' ? (

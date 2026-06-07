@@ -114,75 +114,81 @@ func NewHandler(userUC domain.UserUseCase) *Handler {
 func (h *Handler) InitRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
-		api.GET("/news", h.GetNews)
+		api.POST("/users/register", h.registerUser)
+		api.POST("/users/login", h.loginUser)
+		api.POST("/users/login/email", h.loginWithEmail)
+		api.POST("/users/login/google", h.googleLogin)
+		api.POST("/users/register/email", h.registerEmail)
+		api.POST("/users/verify-email/send", h.sendEmailVerification)
+		api.POST("/users/verify-email/confirm", h.confirmEmailVerification)
 		api.GET("/cities", h.GetCities)
-		api.GET("/ws", h.WebSocketChat)
-		api.GET("/users/:id/chats", h.GetUserChats)
-		api.GET("/users/:id/chats/:partnerId", h.GetChatHistory)
-		api.PUT("/users/:id/chats/:partnerId/read", h.MarkChatAsRead)
-		api.PUT("/users/profile/:userId", h.UpdateProfile)
-		api.GET("/leaderboard", h.GetLeaderboard)
-		api.GET("/users/:id/achievements", h.GetUserAchievements)
-		api.POST("/users/:id/claim-bonus", h.ClaimAchievementBonus)
-		api.POST("/reports", h.CreateReport)
+		api.GET("/news", h.GetNews)
+		api.GET("/feed/", h.getFeed)
 
-		users := api.Group("/users")
+		protected := api.Group("/")
+		protected.Use(AuthMiddleware())
 		{
-			users.POST("/register", h.registerUser)
-			users.POST("/login", h.loginUser)
-			users.GET("/profile/:id", h.getProfile)
-			users.POST("/login/email", h.loginWithEmail)
-			users.POST("/login/google", h.googleLogin)
-			users.POST("/verify-email/send", h.sendEmailVerification)
-			users.POST("/verify-email/confirm", h.confirmEmailVerification)
-			users.POST("/register/email", h.registerEmail)
-			users.GET("/public/:id", h.getPublicProfile)
-			users.GET("/:id/reviews", h.getUserReviews)
-			users.PUT("/:id/fullname", h.SetFullName)
-			users.POST("/:id/telegram-link", h.GenerateTelegramLink)
-			users.DELETE("/:id/chats/:partnerId", h.DeleteChat)
-			users.PUT("/:id/pin/:partnerId", h.TogglePin)
-			users.PUT("/:id/block/:partnerId", h.ToggleBlock)
-			users.GET("/:id/chat-preferences", h.GetChatPreferences)
-		}
+			protected.GET("/ws", h.WebSocketChat)
+			protected.GET("/leaderboard", h.GetLeaderboard)
+			protected.POST("/reports", h.CreateReport)
+			protected.GET("/feed/matches", h.getMatches)
+			protected.GET("/users/profile/:id", h.getProfile)
+			protected.GET("/users/public/:id", h.getPublicProfile)
+			protected.GET("/users/:id/reviews", h.getUserReviews)
 
-		admin := api.Group("/admin")
-		{
-			admin.POST("/news", h.CreateNews)
-			admin.DELETE("/news/:id", h.DeleteNews)
-			admin.PUT("/news/:id", h.UpdateNews)
-			admin.GET("/stats", h.getAdminStats)
-			admin.PUT("/users/:id", h.UpdateUserByAdmin)
-			admin.POST("/users", h.CreateUserByAdmin)
-			admin.PUT("/users/:id/ban", h.toggleBan)
-			admin.PUT("/deals/:id/cancel", h.adminCancelDeal)
-			admin.GET("/deals", h.getAllDealsAdmin)
-			admin.GET("/skills", h.getAdminSkills)
-			admin.DELETE("/skills/:id", h.deleteAdminSkill)
-			admin.PUT("/skills/:id", h.UpdateAdminSkill)
-			admin.GET("/reports", h.GetReportsAdmin)
-			admin.PUT("/reports/:id/resolve", h.ResolveReportAdmin)
-		}
+			userOwn := protected.Group("/users/:id")
+			userOwn.Use(UserOwnershipMiddleware())
+			{
+				userOwn.GET("/chats", h.GetUserChats)
+				userOwn.GET("/chats/:partnerId", h.GetChatHistory)
+				userOwn.PUT("/chats/:partnerId/read", h.MarkChatAsRead)
+				userOwn.DELETE("/chats/:partnerId", h.DeleteChat)
+				userOwn.PUT("/pin/:partnerId", h.TogglePin)
+				userOwn.PUT("/block/:partnerId", h.ToggleBlock)
+				userOwn.GET("/chat-preferences", h.GetChatPreferences)
+				userOwn.PUT("/fullname", h.SetFullName)
+				userOwn.POST("/telegram-link", h.GenerateTelegramLink)
+				userOwn.GET("/achievements", h.GetUserAchievements)
+				userOwn.POST("/claim-bonus", h.ClaimAchievementBonus)
+			}
 
-		skills := api.Group("/skills")
-		{
-			skills.POST("/", h.addSkill)
-			skills.GET("/:user_id", h.getUserSkills)
-			skills.PUT("/:id/toggle", h.toggleSkill)
-			skills.DELETE("/:id", h.deleteSkill)
-		}
-		feed := api.Group("/feed")
-		{
-			feed.GET("/", h.getFeed)
-			feed.GET("/matches", h.getMatches)
-		}
-		deals := api.Group("/deals")
-		{
-			deals.POST("/", h.createDeal)
-			deals.GET("/incoming/:user_id", h.getIncomingDeals)
-			deals.PUT("/:deal_id/status", h.updateDealStatus)
-			deals.POST("/:deal_id/review", h.createReview)
-			deals.GET("/outgoing/:user_id", h.getOutgoingDeals)
+			protected.PUT("/users/profile/:userId", h.UpdateProfile)
+
+			skills := protected.Group("/skills")
+			{
+				skills.POST("/", h.addSkill)
+				skills.GET("/:user_id", h.getUserSkills)
+				skills.PUT("/:id/toggle", h.toggleSkill)
+				skills.DELETE("/:id", h.deleteSkill)
+			}
+
+			deals := protected.Group("/deals")
+			{
+				deals.POST("/", h.createDeal)
+				deals.GET("/incoming/:user_id", h.getIncomingDeals)
+				deals.PUT("/:deal_id/status", h.updateDealStatus)
+				deals.POST("/:deal_id/review", h.createReview)
+				deals.GET("/outgoing/:user_id", h.getOutgoingDeals)
+			}
+
+			admin := protected.Group("/admin")
+			admin.Use(AdminMiddleware())
+			{
+				admin.POST("/news", h.CreateNews)
+				admin.DELETE("/news/:id", h.DeleteNews)
+				admin.PUT("/news/:id", h.UpdateNews)
+				admin.GET("/stats", h.getAdminStats)
+				admin.PUT("/users/:id", h.UpdateUserByAdmin)
+				admin.POST("/users", h.CreateUserByAdmin)
+				admin.PUT("/users/:id/ban", h.toggleBan)
+				admin.PUT("/deals/:id/cancel", h.adminCancelDeal)
+				admin.GET("/deals", h.getAllDealsAdmin)
+				admin.GET("/skills", h.getAdminSkills)
+				admin.DELETE("/skills/:id", h.deleteAdminSkill)
+				admin.PUT("/skills/:id", h.UpdateAdminSkill)
+				admin.GET("/reports", h.GetReportsAdmin)
+				admin.PUT("/reports/:id/resolve", h.ResolveReportAdmin)
+			}
 		}
 	}
 }
