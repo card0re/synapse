@@ -61,7 +61,8 @@ export default function Feed() {
 
     const fetchBalance = async () => {
         try {
-            const res = await fetch(`http://localhost:3000/api/users/profile/${myId}`, {
+            // 👇 ИСПРАВЛЕНИЕ: Изменили profile на public
+            const res = await fetch(`http://localhost:3000/api/users/public/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()

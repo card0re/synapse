@@ -22,10 +22,9 @@ export default function PublicProfile() {
     const [loading, setLoading] = useState(true)
 
     const [myBalance, setMyBalance] = useState<number | null>(null)
-
     const [reviewFilter, setReviewFilter] = useState<number | null>(null)
-
     const [reportData, setReportData] = useState<{type: 'user'|'skill'|'deal', id: string} | null>(null)
+
     const myId = localStorage.getItem("userId")
     const token = localStorage.getItem("token")
 
@@ -42,11 +41,14 @@ export default function PublicProfile() {
     }
 
     useEffect(() => {
+        // 👇 ИСПРАВЛЕНИЕ: Добавлен заголовок Authorization ко всем запросам
+        const headers = { "Authorization": `Bearer ${token}` };
+
         Promise.all([
-            fetch(`http://localhost:3000/api/users/public/${id}`).then(r => r.json()),
-            fetch(`http://localhost:3000/api/skills/${id}`).then(r => r.json()),
-            fetch(`http://localhost:3000/api/users/${id}/reviews`).then(r => r.json()),
-            fetch(`http://localhost:3000/api/users/${id}/achievements`).then(r => r.json())
+            fetch(`http://localhost:3000/api/users/public/${id}`, { headers }).then(r => r.json()),
+            fetch(`http://localhost:3000/api/skills/${id}`, { headers }).then(r => r.json()),
+            fetch(`http://localhost:3000/api/users/${id}/reviews`, { headers }).then(r => r.json()),
+            fetch(`http://localhost:3000/api/users/${id}/achievements`, { headers }).then(r => r.json())
         ])
             .then(([uData, sData, rData, aData]) => {
                 setUser(uData)
@@ -62,7 +64,8 @@ export default function PublicProfile() {
             })
 
         if (myId && token) {
-            fetch(`http://localhost:3000/api/users/profile/${myId}`, {
+            // 👇 ИСПРАВЛЕНИЕ: Изменили profile на public, чтобы избежать конфликта с telegram_id
+            fetch(`http://localhost:3000/api/users/public/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
                 .then(r => r.json())
@@ -201,7 +204,6 @@ export default function PublicProfile() {
                                         <h4 className="font-bold text-lg dark:text-white leading-tight">{skill.title}</h4>
                                         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">{skill.description}</p>
 
-                                        {/* КНОПКА ЖАЛОБЫ НА ОБЪЯВЛЕНИЕ */}
                                         {user.id !== myId && (
                                             <button
                                                 onClick={() => setReportData({type: 'skill', id: skill.id})}
