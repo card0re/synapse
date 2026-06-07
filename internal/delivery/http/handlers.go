@@ -114,6 +114,7 @@ func NewHandler(userUC domain.UserUseCase) *Handler {
 func (h *Handler) InitRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
+		// 1. ПУБЛІЧНІ МАРШРУТИ (без токена в заголовку)
 		api.POST("/users/register", h.registerUser)
 		api.POST("/users/login", h.loginUser)
 		api.POST("/users/login/email", h.loginWithEmail)
@@ -125,17 +126,27 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		api.GET("/news", h.GetNews)
 		api.GET("/feed/", h.getFeed)
 
+		// 👇 ПЕРЕНЕСЕНО СЮДИ 👇
+		// Вебсокет має власну перевірку токена через параметр ?token=
+		api.GET("/ws", h.WebSocketChat)
+
+		// 👇 ПЕРЕНЕСЕНО СЮДИ 👇
+		// Дані публічного профілю (доступні для перегляду всім)
+		api.GET("/users/public/:id", h.getPublicProfile)
+		api.GET("/users/:id/reviews", h.getUserReviews)
+		api.GET("/users/:id/achievements", h.GetUserAchievements)
+		api.GET("/skills/:user_id", h.getUserSkills)
+		api.GET("/leaderboard", h.GetLeaderboard)
+
+		// 2. ЗАХИЩЕНІ МАРШРУТИ (жорстко вимагають Authorization: Bearer токен)
 		protected := api.Group("/")
 		protected.Use(AuthMiddleware())
 		{
-			protected.GET("/ws", h.WebSocketChat)
-			protected.GET("/leaderboard", h.GetLeaderboard)
 			protected.POST("/reports", h.CreateReport)
 			protected.GET("/feed/matches", h.getMatches)
 			protected.GET("/users/profile/:id", h.getProfile)
-			protected.GET("/users/public/:id", h.getPublicProfile)
-			protected.GET("/users/:id/reviews", h.getUserReviews)
 
+			// 3. МАРШРУТИ ВЛАСНИКА (доступні ТІЛЬКИ власнику акаунта)
 			userOwn := protected.Group("/users/:id")
 			userOwn.Use(UserOwnershipMiddleware())
 			{
@@ -148,20 +159,21 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 				userOwn.GET("/chat-preferences", h.GetChatPreferences)
 				userOwn.PUT("/fullname", h.SetFullName)
 				userOwn.POST("/telegram-link", h.GenerateTelegramLink)
-				userOwn.GET("/achievements", h.GetUserAchievements)
 				userOwn.POST("/claim-bonus", h.ClaimAchievementBonus)
 			}
 
+			// Оновлення профілю
 			protected.PUT("/users/profile/:userId", h.UpdateProfile)
 
+			// Навички
 			skills := protected.Group("/skills")
 			{
 				skills.POST("/", h.addSkill)
-				skills.GET("/:user_id", h.getUserSkills)
 				skills.PUT("/:id/toggle", h.toggleSkill)
 				skills.DELETE("/:id", h.deleteSkill)
 			}
 
+			// Угоди
 			deals := protected.Group("/deals")
 			{
 				deals.POST("/", h.createDeal)
@@ -171,6 +183,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 				deals.GET("/outgoing/:user_id", h.getOutgoingDeals)
 			}
 
+			// 4. АДМІНСЬКІ МАРШРУТИ
 			admin := protected.Group("/admin")
 			admin.Use(AdminMiddleware())
 			{

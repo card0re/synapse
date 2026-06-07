@@ -17,7 +17,8 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
         if (!userId || !token) return;
 
-        const socket = new WebSocket(`ws://localhost:3000/api/ws?user_id=${userId}`);
+        // 👇 ИСПРАВЛЕНИЕ: Теперь передаем token вместо user_id
+        const socket = new WebSocket(`ws://localhost:3000/api/ws?token=${token}`);
 
         socket.onopen = () => console.log("🟢 WS підключено (Global Context)");
 
