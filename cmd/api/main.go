@@ -34,7 +34,7 @@ func main() {
 		log.Fatalf("❌ Не удалось подключиться к БД: %v", err)
 	}
 	defer db.Close()
-	log.Println("✅ БД успешно подключена")
+	log.Println("✅ БД успішно підключена")
 
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
