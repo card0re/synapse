@@ -253,19 +253,17 @@ func (h *Handler) loginUser(c *gin.Context) {
 }
 
 func (h *Handler) getProfile(c *gin.Context) {
-	var uri uriInput
-	if err := c.ShouldBindUri(&uri); err != nil {
+	// Беремо ID напряму як рядок (UUID)
+	userID := c.Param("id")
+	if userID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Невірний ID"})
 		return
 	}
 
-	user, err := h.userUC.GetProfile(c.Request.Context(), uri.TelegramID)
+	// Використовуємо GetUserByID, який чудово працює з UUID
+	user, err := h.userUC.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
-		if err == domain.ErrUserNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Користувача не знайдено"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Користувача не знайдено"})
 		return
 	}
 

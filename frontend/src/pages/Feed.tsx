@@ -4,7 +4,7 @@ import { Search, MapPin, Star, Filter, ShieldAlert, MessageCircle, Wallet } from
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import toast from 'react-hot-toast'
+import toast, { Toast } from 'react-hot-toast'
 import ReportModal from "@/components/ReportModal"
 
 interface Skill {
@@ -144,15 +144,30 @@ export default function Feed() {
     }
 
     const confirmAction = (message: string, onConfirm: () => void) => {
-        toast((t) => (
+        toast((t: Toast) => ( // 2. Вкажи тип для t
             <div className="flex flex-col gap-3 min-w-[260px] p-1">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{message}</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    {message}
+                </p>
                 <div className="flex gap-2 justify-end mt-2">
-                    <Button size="sm" variant="outline" onClick={() => toast.dismiss(t.id)} className="h-8 text-xs font-bold dark:border-slate-700 dark:text-slate-300">Скасувати</Button>
-                    <Button size="sm" className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => { onConfirm(); toast.dismiss(t.id); }}>Підтвердити</Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toast.dismiss(t.id)}
+                        className="h-8 text-xs font-bold dark:border-slate-700 dark:text-slate-300"
+                    >
+                        Скасувати
+                    </Button>
+                    <Button
+                        size="sm"
+                        className="h-8 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white"
+                        onClick={() => { onConfirm(); toast.dismiss(t.id); }}
+                    >
+                        Підтвердити
+                    </Button>
                 </div>
             </div>
-        ), { duration: 8000, position: 'top-center' })
+        ), { duration: 8000, position: 'top-center' });
     }
 
     const handleCreateDeal = async (skillId: string, price: number) => {
@@ -263,27 +278,32 @@ export default function Feed() {
     const displayedMatches = matches.slice(0, visibleCount);
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans transition-colors duration-300">
+        <div className="min-h-[calc(100vh-64px)] bg-transparent p-4 md:p-8 font-sans transition-colors duration-300">
             <div className="max-w-3xl mx-auto">
 
                 {myBalance !== null && (
-                    <div className="flex justify-between items-center bg-indigo-600 dark:bg-indigo-900 text-white p-6 rounded-3xl shadow-xl mb-8 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                    <div
+                        className="flex justify-between items-center bg-indigo-600 dark:bg-indigo-900 text-white p-6 rounded-3xl shadow-xl mb-8 relative overflow-hidden">
+                        <div
+                            className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                         <div className="relative z-10">
                             <h4 className="text-indigo-100 text-sm font-bold uppercase tracking-widest mb-1 flex items-center gap-2">
-                                <Wallet size={16} /> Ваш баланс
+                                <Wallet size={16}/> Ваш баланс
                             </h4>
-                            <div className="text-4xl font-black tracking-tight">{myBalance} <span className="text-lg text-indigo-200 font-bold">хвилин</span></div>
+                            <div className="text-4xl font-black tracking-tight">{myBalance} <span
+                                className="text-lg text-indigo-200 font-bold">хвилин</span></div>
                         </div>
-                        <div className="relative z-10 w-16 h-16 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner transform rotate-6">
+                        <div
+                            className="relative z-10 w-16 h-16 bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner transform rotate-6">
                             ⏳
                         </div>
                     </div>
                 )}
 
-                <div className="bg-amber-50 border-l-4 border-amber-500 dark:bg-amber-900/20 dark:border-amber-500 p-4 rounded-r-xl shadow-sm mb-8">
+                <div
+                    className="bg-amber-50 border-l-4 border-amber-500 dark:bg-amber-900/20 dark:border-amber-500 p-4 rounded-r-xl shadow-sm mb-8">
                     <div className="flex items-start gap-3">
-                        <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                        <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0"/>
                         <div>
                             <h4 className="font-bold text-amber-800 dark:text-amber-300 mb-1">Правила безпечної
                                 спільноти</h4>
@@ -302,64 +322,106 @@ export default function Feed() {
                         <div className="relative flex-1 shadow-sm">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20}/>
                             <Input placeholder="Знайти навичку, технологію, мову..."
-                                   className="w-full pl-12 h-14 bg-white dark:bg-slate-900 border-none rounded-2xl text-base dark:text-white shadow-lg focus-visible:ring-indigo-500" value={search} onChange={(e) => setSearch(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()} />
+                                   className="w-full pl-12 h-14 bg-white dark:bg-slate-900 border-none rounded-2xl text-base dark:text-white shadow-lg focus-visible:ring-indigo-500"
+                                   value={search} onChange={(e) => setSearch(e.target.value)}
+                                   onKeyDown={(e) => e.key === 'Enter' && handleApplyFilters()}/>
                         </div>
-                        <Button onClick={() => setShowFilters(!showFilters)} className={`h-14 w-14 rounded-2xl shadow-lg transition-colors shrink-0 ${showFilters ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-                            <Filter size={20} />
+                        <Button onClick={() => setShowFilters(!showFilters)}
+                                className={`h-14 w-14 rounded-2xl shadow-lg transition-colors shrink-0 ${showFilters ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+                            <Filter size={20}/>
                         </Button>
                     </div>
 
                     {showFilters && (
-                        <Card className="border-none shadow-xl bg-white dark:bg-slate-900 rounded-2xl animate-in fade-in slide-in-from-top-4">
+                        <Card
+                            className="border-none shadow-xl bg-white dark:bg-slate-900 rounded-2xl animate-in fade-in slide-in-from-top-4">
                             <CardContent className="p-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                                     <div className="space-y-2 lg:col-span-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Тип</label>
-                                        <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                                            <option value="all">Всі оголошення</option><option value="teach">Навчають (Майстри)</option><option value="learn">Шукають (Учні)</option>
+                                        <label
+                                            className="text-xs font-bold text-slate-500 uppercase tracking-wider">Тип</label>
+                                        <select value={filterType} onChange={e => setFilterType(e.target.value)}
+                                                className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                                            <option value="all">Всі оголошення</option>
+                                            <option value="teach">Навчають (Майстри)</option>
+                                            <option value="learn">Шукають (Учні)</option>
                                         </select>
                                     </div>
                                     <div className="space-y-2 lg:col-span-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Місто</label>
-                                        <select value={cityId} onChange={e => setCityId(e.target.value)} className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                                            <option value="0">Всі міста</option>{cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        <label
+                                            className="text-xs font-bold text-slate-500 uppercase tracking-wider">Місто</label>
+                                        <select value={cityId} onChange={e => setCityId(e.target.value)}
+                                                className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                                            <option value="0">Всі міста</option>
+                                            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                         </select>
                                     </div>
                                     <div className="space-y-2 lg:col-span-1">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Мін. рейтинг</label>
-                                        <select value={minRating} onChange={e => setMinRating(e.target.value)} className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
-                                            <option value="0">Будь-який</option><option value="3">Від 3 ⭐</option><option value="4">Від 4 ⭐</option><option value="4.5">Від 4.5 ⭐</option><option value="5">Тільки 5 ⭐</option>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Мін.
+                                            рейтинг</label>
+                                        <select value={minRating} onChange={e => setMinRating(e.target.value)}
+                                                className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium dark:bg-slate-800 dark:border-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                                            <option value="0">Будь-який</option>
+                                            <option value="3">Від 3 ⭐</option>
+                                            <option value="4">Від 4 ⭐</option>
+                                            <option value="4.5">Від 4.5 ⭐</option>
+                                            <option value="5">Тільки 5 ⭐</option>
                                         </select>
                                     </div>
                                     <div className="lg:col-span-1 flex gap-2">
-                                        <div className="flex-1 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Мін 💰</label><Input type="number" placeholder="0" value={minPrice} onChange={e => setMinPrice(e.target.value)} className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white font-medium focus-visible:ring-indigo-500" /></div>
-                                        <div className="flex-1 space-y-2"><label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Макс 💰</label><Input type="number" placeholder="999" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white font-medium focus-visible:ring-indigo-500" /></div>
+                                        <div className="flex-1 space-y-2"><label
+                                            className="text-xs font-bold text-slate-500 uppercase tracking-wider">Мін
+                                            💰</label><Input type="number" placeholder="0" value={minPrice}
+                                                            onChange={e => setMinPrice(e.target.value)}
+                                                            className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white font-medium focus-visible:ring-indigo-500"/>
+                                        </div>
+                                        <div className="flex-1 space-y-2"><label
+                                            className="text-xs font-bold text-slate-500 uppercase tracking-wider">Макс
+                                            💰</label><Input type="number" placeholder="999" value={maxPrice}
+                                                            onChange={e => setMaxPrice(e.target.value)}
+                                                            className="h-11 rounded-xl bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-white font-medium focus-visible:ring-indigo-500"/>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex gap-3 justify-end border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
-                                    <Button variant="outline" onClick={handleResetFilters} className="rounded-xl font-bold dark:border-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Скинути</Button>
-                                    <Button onClick={handleApplyFilters} className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-8 shadow-md transition-all">Застосувати</Button>
+                                <div
+                                    className="flex gap-3 justify-end border-t border-slate-100 dark:border-slate-800 pt-4 mt-2">
+                                    <Button variant="outline" onClick={handleResetFilters}
+                                            className="rounded-xl font-bold dark:border-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Скинути</Button>
+                                    <Button onClick={handleApplyFilters}
+                                            className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-8 shadow-md transition-all">Застосувати</Button>
                                 </div>
                             </CardContent>
                         </Card>
                     )}
                 </div>
 
-                <div className="flex p-1.5 bg-slate-200/50 dark:bg-slate-900 rounded-2xl w-full border border-slate-200 dark:border-slate-800 mb-6">
-                    <button onClick={() => setActiveTab('all')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all flex-1 justify-center ${activeTab === 'all' ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>🌎 Всі оголошення</button>
-                    <button onClick={() => setActiveTab('matches')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all flex-1 justify-center ${activeTab === 'matches' ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>✨ Рекомендації (ШІ)</button>
+                <div
+                    className="flex p-1.5 bg-slate-200/50 dark:bg-slate-900 rounded-2xl w-full border border-slate-200 dark:border-slate-800 mb-6">
+                    <button onClick={() => setActiveTab('all')}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all flex-1 justify-center ${activeTab === 'all' ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>🌎
+                        Всі оголошення
+                    </button>
+                    <button onClick={() => setActiveTab('matches')}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black transition-all flex-1 justify-center ${activeTab === 'matches' ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>✨
+                        Рекомендації (ШІ)
+                    </button>
                 </div>
 
                 <div className="animate-in fade-in duration-500">
                     {activeTab === 'all' && (
                         loading ? (
-                            <div><FeedSkeleton /><FeedSkeleton /><FeedSkeleton /></div>
+                            <div><FeedSkeleton/><FeedSkeleton/><FeedSkeleton/></div>
                         ) : feed.length === 0 ? (
-                            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm">
+                            <div
+                                className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-slate-300 dark:border-slate-700 shadow-sm">
                                 <div className="text-5xl mb-4">🔍</div>
-                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">Нічого не знайдено</h3>
-                                <p className="text-slate-500 max-w-md mx-auto">Спробуйте змінити критерії пошуку або скинути фільтри.</p>
-                                <Button variant="outline" onClick={handleResetFilters} className="mt-6 font-bold rounded-xl dark:border-slate-700 dark:text-slate-300">Скинути всі фільтри</Button>
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">Нічого не
+                                    знайдено</h3>
+                                <p className="text-slate-500 max-w-md mx-auto">Спробуйте змінити критерії пошуку або
+                                    скинути фільтри.</p>
+                                <Button variant="outline" onClick={handleResetFilters}
+                                        className="mt-6 font-bold rounded-xl dark:border-slate-700 dark:text-slate-300">Скинути
+                                    всі фільтри</Button>
                             </div>
                         ) : (
                             <>
@@ -368,7 +430,8 @@ export default function Feed() {
                                 {/* 👇 КНОПКА ПОКАЗАТИ ЩЕ 👇 */}
                                 {feed.length > visibleCount && (
                                     <div className="flex justify-center mt-8 mb-4">
-                                        <Button variant="outline" onClick={() => setVisibleCount(v => v + 10)} className="rounded-xl font-bold h-12 px-8 border-slate-200 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm">
+                                        <Button variant="outline" onClick={() => setVisibleCount(v => v + 10)}
+                                                className="rounded-xl font-bold h-12 px-8 border-slate-200 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm">
                                             Показати ще 👇
                                         </Button>
                                     </div>
@@ -379,24 +442,35 @@ export default function Feed() {
 
                     {activeTab === 'matches' && (
                         loadingMatches ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-4"><div className="text-4xl animate-bounce">🤖</div><p className="font-bold text-indigo-600 dark:text-indigo-400 text-center px-4 leading-relaxed">Штучний інтелект аналізує ваш профіль <br/> та підбирає ідеальні збіги...</p></div>
+                            <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-4">
+                                <div className="text-4xl animate-bounce">🤖</div>
+                                <p className="font-bold text-indigo-600 dark:text-indigo-400 text-center px-4 leading-relaxed">Штучний
+                                    інтелект аналізує ваш профіль <br/> та підбирає ідеальні збіги...</p></div>
                         ) : matches.length === 0 ? (
-                            <div className="text-center py-20 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 rounded-3xl border border-indigo-100 dark:border-slate-700 shadow-sm">
+                            <div
+                                className="text-center py-20 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-slate-900 dark:to-slate-800 rounded-3xl border border-indigo-100 dark:border-slate-700 shadow-sm">
                                 <div className="text-5xl mb-4">✍️</div>
-                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">Заповніть своє "Біо"</h3>
-                                <p className="text-slate-500 max-w-md mx-auto">Штучному інтелекту не вистачає даних про ваші інтереси. Розкажіть про себе в налаштуваннях профілю, і ми знайдемо найкращих майстрів!</p>
-                                <Button onClick={() => navigate('/profile')} className="mt-6 font-bold bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white shadow-md hover:shadow-lg transition-all">Перейти в Профіль</Button>
+                                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">Заповніть своє
+                                    "Біо"</h3>
+                                <p className="text-slate-500 max-w-md mx-auto">Штучному інтелекту не вистачає даних про
+                                    ваші інтереси. Розкажіть про себе в налаштуваннях профілю, і ми знайдемо найкращих
+                                    майстрів!</p>
+                                <Button onClick={() => navigate('/profile')}
+                                        className="mt-6 font-bold bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white shadow-md hover:shadow-lg transition-all">Перейти
+                                    в Профіль</Button>
                             </div>
                         ) : (
                             <>
-                                <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 p-4 rounded-2xl mb-6 font-medium text-sm text-center border border-indigo-100 dark:border-indigo-800/50 shadow-sm animate-in fade-in">
+                                <div
+                                    className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-300 p-4 rounded-2xl mb-6 font-medium text-sm text-center border border-indigo-100 dark:border-indigo-800/50 shadow-sm animate-in fade-in">
                                     💡 Ці оголошення підібрані спеціально для вас на основі ваших інтересів та біографії.
                                 </div>
                                 <div>{displayedMatches.map(renderSkillCard)}</div>
 
                                 {matches.length > visibleCount && (
                                     <div className="flex justify-center mt-8 mb-4">
-                                        <Button variant="outline" onClick={() => setVisibleCount(v => v + 10)} className="rounded-xl font-bold h-12 px-8 border-slate-200 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm">
+                                        <Button variant="outline" onClick={() => setVisibleCount(v => v + 10)}
+                                                className="rounded-xl font-bold h-12 px-8 border-slate-200 dark:border-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm">
                                             Показати ще 👇
                                         </Button>
                                     </div>
@@ -406,7 +480,8 @@ export default function Feed() {
                     )}
                 </div>
 
-                <ReportModal targetType={reportData?.type || 'user'} targetId={reportData?.id || ''} isOpen={!!reportData} onClose={() => setReportData(null)} />
+                <ReportModal targetType={reportData?.type || 'user'} targetId={reportData?.id || ''}
+                             isOpen={!!reportData} onClose={() => setReportData(null)}/>
             </div>
         </div>
     )
