@@ -19,6 +19,7 @@ import Chat from './pages/Chat'
 import Terms from "./pages/Terms"
 import Privacy from "./pages/Privacy"
 import Leaderboard from "./pages/Leaderboard"
+import Premium from "./pages/Premium";
 import { WebSocketProvider, useWebSocket } from "./contexts/WebSocketContext"
 
 function Navbar() {
@@ -96,7 +97,7 @@ function Navbar() {
     }
 
     return (
-        <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors duration-300">
+        <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm transition-colors duration-300">
             <div className="w-full px-6 md:px-10">
                 <div className="flex justify-between h-16 items-center">
 
@@ -173,43 +174,56 @@ export default function App() {
     return (
         <WebSocketProvider>
             <Router>
-                <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300">
-                    <Navbar />
+                <div className="min-h-screen text-slate-900 dark:text-slate-100 font-sans transition-colors duration-300 relative overflow-x-hidden">
 
-                    <ThemeToggle />
+                    {/* 👇 ГЛОБАЛЬНИЙ АНІМОВАНИЙ ФОН 👇 */}
+                    <div className="fixed inset-0 pointer-events-none z-0 bg-slate-50 dark:bg-slate-950">
+                        <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] dark:bg-[radial-gradient(#334155_1px,transparent_1px)] [background-size:24px_24px] opacity-40"></div>
+                        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-500/20 dark:bg-indigo-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: '4s' }}></div>
+                        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-amber-500/10 dark:bg-amber-600/10 rounded-full blur-[100px] animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }}></div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-[120px] transform rotate-45"></div>
+                    </div>
 
-                    <Toaster
-                        position="bottom-right"
-                        reverseOrder={false}
-                        toastOptions={{
-                            className: 'dark:bg-slate-800 dark:text-white',
-                            duration: 4000,
-                        }}
-                    />
+                    {/* 👇 ОСНОВНИЙ КОНТЕНТ (Поверх фону) 👇 */}
+                    <div className="relative z-10 flex flex-col min-h-screen">
+                        <Navbar />
 
-                    <Routes>
-                        <Route element={<PublicRoute />}>
-                            <Route path="/" element={<Landing />} />
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/register" element={<Register />} />
-                            <Route path="/terms" element={<Terms />} />
-                            <Route path="/privacy" element={<Privacy />} />
-                        </Route>
+                        <ThemeToggle />
 
-                        <Route element={<ProtectedRoute />}>
-                            <Route path="/feed" element={<Feed />} />
-                            <Route path="/profile" element={<Profile />} />
+                        <Toaster
+                            position="bottom-right"
+                            reverseOrder={false}
+                            toastOptions={{
+                                className: 'dark:bg-slate-800 dark:text-white',
+                                duration: 4000,
+                            }}
+                        />
 
-                            <Route path="/chat" element={<Chat />} />
-                            <Route path="/chat/:partnerId" element={<Chat />} />
+                        <Routes>
+                            <Route element={<PublicRoute />}>
+                                <Route path="/" element={<Landing />} />
+                                <Route path="/login" element={<Login />} />
+                                <Route path="/register" element={<Register />} />
+                                <Route path="/terms" element={<Terms />} />
+                                <Route path="/privacy" element={<Privacy />} />
+                            </Route>
 
-                            <Route path="/user/:id" element={<PublicProfile />} />
-                            <Route path="/admin" element={<Admin />} />
-                            <Route path="/leaderboard" element={<Leaderboard />} />
-                        </Route>
+                            <Route element={<ProtectedRoute />}>
+                                <Route path="/feed" element={<Feed />} />
+                                <Route path="/profile" element={<Profile />} />
 
-                        <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
+                                <Route path="/chat" element={<Chat />} />
+                                <Route path="/chat/:partnerId" element={<Chat />} />
+
+                                <Route path="/user/:id" element={<PublicProfile />} />
+                                <Route path="/admin" element={<Admin />} />
+                                <Route path="/leaderboard" element={<Leaderboard />} />
+                                <Route path="/premium" element={<Premium />} />
+                            </Route>
+
+                            <Route path="*" element={<Navigate to="/" replace />} />
+                        </Routes>
+                    </div>
                 </div>
             </Router>
         </WebSocketProvider>

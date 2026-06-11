@@ -96,8 +96,8 @@ func main() {
 	handler.InitRoutes(router)
 
 	port := ":3000"
-	log.Printf("🚀 API сервер запущен по адресу http://localhost%s", port)
+	log.Printf("🚀 API сервера запущений за адресою http://localhost%s", port)
 	if err := router.Run(port); err != nil {
-		log.Fatalf("Ошибка при запуске сервера: %s", err.Error())
+		log.Fatalf("Помилка під час запуску сервера: %s", err.Error())
 	}
 }
