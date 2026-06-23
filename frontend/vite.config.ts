@@ -9,4 +9,10 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  // Добавляем вот этот блок
+  server: {
+    host: '127.0.0.1',
+    port: 5173,
+    allowedHosts: ['synapse.tel'],
+  },
 })

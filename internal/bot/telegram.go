@@ -2,12 +2,11 @@ package bot
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"log"
-	"math/rand"
-	"time"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"log"
+	"math/big"
 	"skillswap-irpin/internal/domain"
 )
 
@@ -26,10 +25,14 @@ func NewBot(token string, userUC domain.UserUseCase) (*TelegramBot, error) {
 }
 
 func (b *TelegramBot) sendAuthCode(chatID int64, userID int64) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	code := fmt.Sprintf("%06d", r.Intn(1000000)) // 6 цифр
+	val, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		log.Printf("Помилка генерації коду: %v", err)
+		return
+	}
+	code := fmt.Sprintf("%06d", val.Int64())
 
-	err := b.userUC.SetAuthCode(context.Background(), userID, code)
+	err = b.userUC.SetAuthCode(context.Background(), userID, code)
 	if err != nil {
 		log.Printf("🚨 ПОМИЛКА: Не вдалося зберегти код для telegram_id=%d. Деталі: %v", userID, err)
 		b.api.Send(tgbotapi.NewMessage(chatID, "🚨 Помилка генерації коду. Перевірте консоль сервера або натисніть /start"))

@@ -27,11 +27,11 @@ func main() {
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "postgres://root:***REMOVED-DB-PASSWORD***@localhost:5432/skillswap?sslmode=disable"
+		log.Fatal("КРИТИЧНО: DATABASE_URL не знайдено у файлі .env!")
 	}
 	db, err := sqlx.Connect("pgx", dsn)
 	if err != nil {
-		log.Fatalf("❌ Не удалось подключиться к БД: %v", err)
+		log.Fatalf("❌ Не вдалося підключитися до БД: %v", err)
 	}
 	defer db.Close()
 	log.Println("✅ БД успішно підключена")
@@ -84,19 +84,22 @@ func main() {
 
 	router := gin.Default()
 
+	// ОНОВЛЕНА КОНФІГУРАЦІЯ CORS
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:5174"},
+		// Хардкодим всё, что нужно для работы
+		AllowOrigins:     []string{"https://synapse.tel", "https://www.synapse.tel"},
 		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}))
 
 	handler := deliveryHttp.NewHandler(userUC)
 	handler.InitRoutes(router)
 
 	port := ":3000"
-	log.Printf("🚀 API сервера запущений за адресою http://localhost%s", port)
+	log.Printf("🚀 API сервера запущений і доступний для фронтенду через тунель на порту %s", port)
 	if err := router.Run(port); err != nil {
 		log.Fatalf("Помилка під час запуску сервера: %s", err.Error())
 	}

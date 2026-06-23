@@ -100,13 +100,6 @@ type updateNewsInput struct {
 	Content string `json:"content" binding:"required"`
 }
 
-const (
-	smtpEmail    = "skillswapir@gmail.com"
-	smtpPassword = "***REMOVED-SMTP-PASSWORD***"
-	smtpHost     = "smtp.gmail.com"
-	smtpPort     = "587"
-)
-
 func NewHandler(userUC domain.UserUseCase) *Handler {
 	return &Handler{userUC: userUC}
 }
@@ -114,14 +107,19 @@ func NewHandler(userUC domain.UserUseCase) *Handler {
 func (h *Handler) InitRoutes(router *gin.Engine) {
 	api := router.Group("/api")
 	{
-		// 1. ПУБЛІЧНІ МАРШРУТИ (без токена в заголовку)
-		api.POST("/users/register", h.registerUser)
-		api.POST("/users/login", h.loginUser)
-		api.POST("/users/login/email", h.loginWithEmail)
-		api.POST("/users/login/google", h.googleLogin)
-		api.POST("/users/register/email", h.registerEmail)
-		api.POST("/users/verify-email/send", h.sendEmailVerification)
-		api.POST("/users/verify-email/confirm", h.confirmEmailVerification)
+		authGroup := api.Group("/users")
+		authGroup.Use(RateLimitAuth())
+		{
+			authGroup.POST("/register", h.registerUser)
+			authGroup.POST("/login", h.loginUser)
+			authGroup.POST("/login/email", h.loginWithEmail)
+			authGroup.POST("/login/google", h.googleLogin)
+			authGroup.POST("/register/email", h.registerEmail)
+			authGroup.POST("/verify-email/send", h.sendEmailVerification)
+			authGroup.POST("/verify-email/confirm", h.confirmEmailVerification)
+		}
+
+		// Решта публічних маршрутів без лімітів
 		api.GET("/cities", h.GetCities)
 		api.GET("/news", h.GetNews)
 		api.GET("/feed/", h.getFeed)

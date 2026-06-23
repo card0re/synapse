@@ -30,7 +30,8 @@ export default function ThemeToggle() {
     return (
         <button
             onClick={toggleTheme}
-            className="fixed bottom-6 right-6 z-[100] flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 shadow-xl border border-slate-700 dark:bg-white dark:border-slate-200 transition-all active:scale-90"
+            // 👇 Змінили bottom-6 на bottom-28, щоб не перекривало навбар
+            className="fixed bottom-28 right-6 z-[100] flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 shadow-xl border border-slate-700 dark:bg-white dark:border-slate-200 transition-all active:scale-90"
         >
             <motion.div
                 initial={false}

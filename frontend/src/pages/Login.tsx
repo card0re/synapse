@@ -26,7 +26,7 @@ export default function Login() {
         e.preventDefault()
         setLoading(true)
 
-        const endpoint = loginMode === 'email' ? "http://localhost:3000/api/users/login/email" : "http://localhost:3000/api/users/login"
+        const endpoint = loginMode === 'email' ? "https://api.synapse.tel/api/users/login/email" : "https://api.synapse.tel/api/users/login"
         const payload = loginMode === 'email' ? { email, password } : { code }
 
         try {
@@ -45,7 +45,7 @@ export default function Login() {
     const handleGoogleSuccess = async (credentialResponse: any) => {
         setLoading(true)
         try {
-            const response = await fetch("http://localhost:3000/api/users/login/google", {
+            const response = await fetch("https://api.synapse.tel/api/users/login/google", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token: credentialResponse.credential }),
