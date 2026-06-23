@@ -27,7 +27,7 @@ export default function ReportModal({ targetType, targetId, isOpen, onClose }: R
         setLoading(true)
         const token = localStorage.getItem("token")
         try {
-            const res = await fetch("http://localhost:3000/api/reports", {
+            const res = await fetch("https://api.synapse.tel/api/reports", {
                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ target_type: targetType, target_id: targetId, reason, details })
             })

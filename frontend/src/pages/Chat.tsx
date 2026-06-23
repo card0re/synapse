@@ -47,8 +47,8 @@ export default function Chat() {
         if (!token || !myId) return;
         try {
             const [chatsRes, prefsRes] = await Promise.all([
-                fetch(`http://localhost:3000/api/users/${myId}/chats`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`http://localhost:3000/api/users/${myId}/chat-preferences`, { headers: { "Authorization": `Bearer ${token}` } })
+                fetch(`https://api.synapse.tel/api/users/${myId}/chats`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`https://api.synapse.tel/api/users/${myId}/chat-preferences`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
 
             const chats = await chatsRes.json();
@@ -71,7 +71,7 @@ export default function Chat() {
     }
 
     const loadMessages = (partner_id: string) => {
-        fetch(`http://localhost:3000/api/users/${myId}/chats/${partner_id}`, { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`https://api.synapse.tel/api/users/${myId}/chats/${partner_id}`, { headers: { "Authorization": `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => { if (Array.isArray(data)) setMessages(data) })
     }
@@ -83,7 +83,7 @@ export default function Chat() {
 
     useEffect(() => {
         if (partnerId && token && myId) {
-            fetch(`http://localhost:3000/api/users/${myId}/chats/${partnerId}/read`, {
+            fetch(`https://api.synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
                 method: "PUT", headers: { "Authorization": `Bearer ${token}` }
             }).then(() => loadContacts())
         }
@@ -133,7 +133,7 @@ export default function Chat() {
                 return [...prev, data];
             })
             if (data.sender_id === partnerId) {
-                fetch(`http://localhost:3000/api/users/${myId}/chats/${partnerId}/read`, {
+                fetch(`https://api.synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
                     method: "PUT", headers: { "Authorization": `Bearer ${token}` }
                 })
             }
@@ -203,7 +203,7 @@ export default function Chat() {
 
     const handlePinChat = async () => {
         if (!partnerId) return;
-        await fetch(`http://localhost:3000/api/users/${myId}/pin/${partnerId}`, { method: "PUT" });
+        await fetch(`https://api.synapse.tel/api/users/${myId}/pin/${partnerId}`, { method: "PUT" });
         loadContacts();
         setIsChatMenuOpen(false);
     }
@@ -221,7 +221,7 @@ export default function Chat() {
         const targetId = confirmModal?.partnerId || partnerId;
         if (!targetId) return;
 
-        await fetch(`http://localhost:3000/api/users/${myId}/block/${targetId}`, { method: "PUT" });
+        await fetch(`https://api.synapse.tel/api/users/${myId}/block/${targetId}`, { method: "PUT" });
         await loadContacts();
         setConfirmModal(null);
         toast.success(currentPartner?.is_blocked ? "Користувача розблоковано!" : "Користувача заблоковано!");
@@ -230,7 +230,7 @@ export default function Chat() {
     const executeDeleteChat = async () => {
         if (!confirmModal?.partnerId) return;
         try {
-            const res = await fetch(`http://localhost:3000/api/users/${myId}/chats/${confirmModal.partnerId}`, {
+            const res = await fetch(`https://api.synapse.tel/api/users/${myId}/chats/${confirmModal.partnerId}`, {
                 method: "DELETE", headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
@@ -251,13 +251,17 @@ export default function Chat() {
     if (!myId) return <div className="p-8 text-center">Увійдіть в акаунт</div>
 
     return (
-        <div className="min-h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans transition-colors duration-300 relative">
+        <div className="min-h-screen bg-transparent transition-colors duration-300 p-4 sm:p-6">
 
             {confirmModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in">
+                    <div
+                        className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600 dark:text-red-400 text-2xl">⚠️</div>
+                            <div
+                                className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-red-600 dark:text-red-400 text-2xl">⚠️
+                            </div>
                             <h3 className="text-2xl font-black text-slate-900 dark:text-white">Підтвердження</h3>
                         </div>
                         <p className="text-slate-600 dark:text-slate-300 mb-8 text-lg leading-relaxed">
@@ -272,7 +276,8 @@ export default function Chat() {
                             >
                                 {confirmModal.type === 'delete' ? "Видалити чат" : "Заблокувати"}
                             </Button>
-                            <Button onClick={() => setConfirmModal(null)} variant="outline" className="flex-1 dark:border-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-12">Скасувати</Button>
+                            <Button onClick={() => setConfirmModal(null)} variant="outline"
+                                    className="flex-1 dark:border-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 h-12">Скасувати</Button>
                         </div>
                     </div>
                 </div>
@@ -281,7 +286,7 @@ export default function Chat() {
             {contextMenu && (
                 <div
                     className="fixed z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl py-2 px-3 w-[220px] animate-in fade-in zoom-in-95 flex flex-col gap-2"
-                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    style={{top: contextMenu.y, left: contextMenu.x}}
                 >
                     <div className="flex justify-between items-center px-1">
                         {['❤️', '👍', '😂', '😲', '😢', '👎'].map(emoji => (
@@ -295,18 +300,35 @@ export default function Chat() {
                         ))}
                     </div>
 
-                    <hr className="border-slate-200 dark:border-slate-700" />
-                    <button onClick={() => { setReplyingTo(contextMenu.msg); setEditingMsgId(null); setNewMessage(""); setContextMenu(null); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium rounded-md">↩️ Відповісти</button>
+                    <hr className="border-slate-200 dark:border-slate-700"/>
+                    <button onClick={() => {
+                        setReplyingTo(contextMenu.msg);
+                        setEditingMsgId(null);
+                        setNewMessage("");
+                        setContextMenu(null);
+                    }}
+                            className="w-full text-left px-2 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium rounded-md">↩️
+                        Відповісти
+                    </button>
                     {contextMenu.msg.sender_id === myId && (
-                        <button onClick={() => { setEditingMsgId(contextMenu.msg.id!); setNewMessage(contextMenu.msg.text); setReplyingTo(null); setContextMenu(null); }} className="w-full text-left px-2 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium rounded-md">✏️ Редагувати</button>
+                        <button onClick={() => {
+                            setEditingMsgId(contextMenu.msg.id!);
+                            setNewMessage(contextMenu.msg.text);
+                            setReplyingTo(null);
+                            setContextMenu(null);
+                        }}
+                                className="w-full text-left px-2 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium rounded-md">✏️
+                            Редагувати</button>
                     )}
                 </div>
             )}
 
-            <div className="max-w-6xl mx-auto h-[82vh] flex gap-4">
+            <div className="max-w-6xl w-full mx-auto h-[82vh] flex gap-4">
 
-                <Card className="w-1/3 hidden md:flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-                    <CardHeader className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-4">
+                <Card
+                    className="w-1/3 hidden md:flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    <CardHeader
+                        className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-4">
                         <CardTitle className="text-lg text-slate-800 dark:text-slate-100">💬 Мої діалоги</CardTitle>
                     </CardHeader>
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -321,7 +343,9 @@ export default function Chat() {
                                         onClick={() => navigate(`/chat/${c.partner_id}`)}
                                         className={`flex items-center gap-3 p-4 border-b border-slate-100 dark:border-slate-800/50 cursor-pointer transition-colors ${partnerId === c.partner_id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50 border-l-4 border-l-transparent'}`}
                                     >
-                                        <img src={c.partner_avatar || `https://ui-avatars.com/api/?name=${c.partner_name}&background=c7d2fe&color=3730a3`} alt="ava" className="w-12 h-12 rounded-full object-cover" />
+                                        <img
+                                            src={c.partner_avatar || `https://ui-avatars.com/api/?name=${c.partner_name}&background=c7d2fe&color=3730a3`}
+                                            alt="ava" className="w-12 h-12 rounded-full object-cover"/>
                                         <div className="flex-1 overflow-hidden">
                                             <div className="flex justify-between items-baseline mb-1">
                                                 <h4 className={`truncate flex items-center gap-1 ${hasUnread ? 'font-black text-indigo-700 dark:text-indigo-400' : 'font-bold text-slate-900 dark:text-slate-100'}`}>
@@ -329,9 +353,14 @@ export default function Chat() {
                                                     {c.partner_name}
                                                 </h4>
                                                 <div className="flex items-center gap-2">
-                                                    {hasUnread && <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{c.unread_count}</span>}
-                                                    <span className={`text-[10px] whitespace-nowrap ${hasUnread ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-400'}`}>
-                                                        {new Date(c.last_message_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                                                    {hasUnread && <span
+                                                        className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{c.unread_count}</span>}
+                                                    <span
+                                                        className={`text-[10px] whitespace-nowrap ${hasUnread ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-400'}`}>
+                                                        {new Date(c.last_message_at).toLocaleTimeString('uk-UA', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })}
                                                     </span>
                                                 </div>
                                             </div>
@@ -346,35 +375,60 @@ export default function Chat() {
                     </div>
                 </Card>
 
-                <Card className="flex-1 flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                <Card
+                    className="flex-1 flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
                     {partnerId ? (
                         <>
-                            <CardHeader className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-3 px-6 flex flex-row items-center justify-between">
+                            <CardHeader
+                                className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-3 px-6 flex flex-row items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <img src={displayAvatar} alt="ava" className="w-10 h-10 rounded-full" />
+                                    <img src={displayAvatar} alt="ava" className="w-10 h-10 rounded-full"/>
                                     <div>
-                                        <CardTitle className="text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                                        <CardTitle
+                                            className="text-lg text-slate-800 dark:text-slate-100 flex items-center gap-2">
                                             {displayName}
-                                            {isBlocked && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Заблоковано</span>}
+                                            {isBlocked && <span
+                                                className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Заблоковано</span>}
                                         </CardTitle>
                                     </div>
                                 </div>
 
                                 <div className="relative">
-                                    <button onClick={(e) => { e.stopPropagation(); setIsChatMenuOpen(!isChatMenuOpen); }} className="p-2 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                    <button onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsChatMenuOpen(!isChatMenuOpen);
+                                    }}
+                                            className="p-2 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors flex items-center justify-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                             viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                                             strokeLinecap="round" strokeLinejoin="round">
+                                            <circle cx="12" cy="12" r="1"/>
+                                            <circle cx="12" cy="5" r="1"/>
+                                            <circle cx="12" cy="19" r="1"/>
+                                        </svg>
                                     </button>
 
                                     {isChatMenuOpen && (
-                                        <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl py-2 z-50 animate-in fade-in zoom-in-95">
-                                            <button onClick={handlePinChat} className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold transition-colors">
+                                        <div
+                                            className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl py-2 z-50 animate-in fade-in zoom-in-95">
+                                            <button onClick={handlePinChat}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 font-bold transition-colors">
                                                 {isPinned ? "📌 Відкріпити чат" : "📌 Закріпити чат"}
                                             </button>
-                                            <hr className="border-slate-200 dark:border-slate-700 my-1" />
-                                            <button onClick={() => { setIsChatMenuOpen(false); setConfirmModal({ type: 'delete', partnerId: partnerId!, partnerName: displayName }); }} className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold transition-colors">
+                                            <hr className="border-slate-200 dark:border-slate-700 my-1"/>
+                                            <button onClick={() => {
+                                                setIsChatMenuOpen(false);
+                                                setConfirmModal({
+                                                    type: 'delete',
+                                                    partnerId: partnerId!,
+                                                    partnerName: displayName
+                                                });
+                                            }}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold transition-colors">
                                                 🗑 Видалити чат
                                             </button>
-                                            <button onClick={handleBlockClick} className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold transition-colors">
+                                            <button onClick={handleBlockClick}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 font-bold transition-colors">
                                                 {isBlocked ? "✅ Розблокувати користувача" : "🚫 Заблокувати користувача"}
                                             </button>
                                         </div>
@@ -382,17 +436,22 @@ export default function Chat() {
                                 </div>
                             </CardHeader>
 
-                            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/50 custom-scrollbar">
+                            <CardContent
+                                className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/50 custom-scrollbar">
 
-                                <div className="bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/50 p-3 rounded-xl mb-6 shadow-sm mx-auto max-w-2xl flex items-start gap-3">
-                                    <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
+                                <div
+                                    className="bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/50 p-3 rounded-xl mb-6 shadow-sm mx-auto max-w-2xl flex items-start gap-3">
+                                    <ShieldAlert
+                                        className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0"/>
                                     <p className="text-xs text-amber-800 dark:text-amber-400/90 leading-relaxed text-center w-full pr-5">
-                                        <strong>Увага!</strong> Ніколи не діліться паролями, фінансовою інформацією чи точною адресою. Не переходьте за підозрілими посиланнями.
+                                        <strong>Увага!</strong> Ніколи не діліться паролями, фінансовою інформацією чи
+                                        точною адресою. Не переходьте за підозрілими посиланнями.
                                     </p>
                                 </div>
 
                                 {messages.length === 0 ? (
-                                    <div className="h-full flex items-center justify-center text-slate-400">Напишіть перше повідомлення 👋</div>
+                                    <div className="h-full flex items-center justify-center text-slate-400">Напишіть
+                                        перше повідомлення 👋</div>
                                 ) : (
                                     (() => {
                                         let lastDate = "";
@@ -416,7 +475,10 @@ export default function Chat() {
                                                 } else if (dateString === yesterday.toDateString()) {
                                                     dateLabel = "Вчора";
                                                 } else {
-                                                    dateLabel = msgDate.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+                                                    dateLabel = msgDate.toLocaleDateString('uk-UA', {
+                                                        day: 'numeric',
+                                                        month: 'long'
+                                                    });
                                                 }
                                             }
 
@@ -424,36 +486,49 @@ export default function Chat() {
                                                 <Fragment key={msg.id || index}>
                                                     {showDateDivider && (
                                                         <div className="flex justify-center my-6">
-                                                            <span className="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                                                            <span
+                                                                className="bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-4 py-1 rounded-full uppercase tracking-widest shadow-sm">
                                                                 {dateLabel}
                                                             </span>
                                                         </div>
                                                     )}
 
-                                                    <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} relative group`} onContextMenu={(e) => handleRightClick(e, msg)}>
-                                                        <div className={`max-w-[75%] px-4 py-2 rounded-2xl relative ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-sm'}`}>
+                                                    <div
+                                                        className={`flex ${isMe ? 'justify-end' : 'justify-start'} relative group`}
+                                                        onContextMenu={(e) => handleRightClick(e, msg)}>
+                                                        <div
+                                                            className={`max-w-[75%] px-4 py-2 rounded-2xl relative ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-bl-none shadow-sm'}`}>
 
                                                             {msg.reply_to_text && (
-                                                                <div className={`mb-2 pl-2 border-l-2 text-xs opacity-80 ${isMe ? 'border-indigo-300 bg-indigo-700/30' : 'border-indigo-500 bg-slate-100 dark:bg-slate-700/50'} rounded-r-md py-1 pr-2`}>
+                                                                <div
+                                                                    className={`mb-2 pl-2 border-l-2 text-xs opacity-80 ${isMe ? 'border-indigo-300 bg-indigo-700/30' : 'border-indigo-500 bg-slate-100 dark:bg-slate-700/50'} rounded-r-md py-1 pr-2`}>
                                                                     <div className="font-bold mb-0.5">Відповідь</div>
-                                                                    <div className="truncate line-clamp-1">{msg.reply_to_text}</div>
+                                                                    <div
+                                                                        className="truncate line-clamp-1">{msg.reply_to_text}</div>
                                                                 </div>
                                                             )}
 
                                                             <p className="text-sm whitespace-pre-wrap">{msg.text}</p>
 
                                                             {msg.reaction && (
-                                                                <div className={`absolute -bottom-3 ${isMe ? '-left-2' : '-right-2'} bg-white dark:bg-slate-800 rounded-full px-1.5 py-0.5 shadow border border-slate-100 dark:border-slate-700 text-sm`}>
+                                                                <div
+                                                                    className={`absolute -bottom-3 ${isMe ? '-left-2' : '-right-2'} bg-white dark:bg-slate-800 rounded-full px-1.5 py-0.5 shadow border border-slate-100 dark:border-slate-700 text-sm`}>
                                                                     {msg.reaction}
                                                                 </div>
                                                             )}
 
-                                                            <div className={`flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
-                                                                {msg.is_edited && <span className="text-[9px] italic mr-1">(редаговано)</span>}
+                                                            <div
+                                                                className={`flex items-center justify-end gap-1 mt-1 ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
+                                                                {msg.is_edited && <span
+                                                                    className="text-[9px] italic mr-1">(редаговано)</span>}
                                                                 <p className="text-[10px]">
-                                                                    {new Date(msg.created_at).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                                                                    {new Date(msg.created_at).toLocaleTimeString('uk-UA', {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
                                                                 </p>
-                                                                {isMe && <span className="text-[10px] font-bold tracking-tighter ml-1">{msg.is_read ? "✓✓" : "✓"}</span>}
+                                                                {isMe && <span
+                                                                    className="text-[10px] font-bold tracking-tighter ml-1">{msg.is_read ? "✓✓" : "✓"}</span>}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -462,34 +537,47 @@ export default function Chat() {
                                         })
                                     })()
                                 )}
-                                <div ref={messagesEndRef} />
+                                <div ref={messagesEndRef}/>
                             </CardContent>
 
-                            <CardFooter className="p-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col">
+                            <CardFooter
+                                className="p-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col">
                                 {editingMsgId && (
-                                    <div className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-2 flex justify-between items-center text-sm border-b border-slate-200 dark:border-slate-700">
+                                    <div
+                                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-2 flex justify-between items-center text-sm border-b border-slate-200 dark:border-slate-700">
                                         <span className="text-indigo-600 dark:text-indigo-400 font-bold">✏️ Редагування повідомлення...</span>
-                                        <button onClick={() => { setEditingMsgId(null); setNewMessage(""); }} className="text-slate-500 hover:text-red-500 font-bold">✕</button>
+                                        <button onClick={() => {
+                                            setEditingMsgId(null);
+                                            setNewMessage("");
+                                        }} className="text-slate-500 hover:text-red-500 font-bold">✕
+                                        </button>
                                     </div>
                                 )}
                                 {replyingTo && (
-                                    <div className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-2 flex justify-between items-center text-sm border-b border-slate-200 dark:border-slate-700">
+                                    <div
+                                        className="w-full bg-slate-100 dark:bg-slate-800 px-4 py-2 flex justify-between items-center text-sm border-b border-slate-200 dark:border-slate-700">
                                         <div className="flex flex-col border-l-2 border-indigo-500 pl-2">
-                                            <span className="text-indigo-600 dark:text-indigo-400 font-bold text-xs">Відповідь</span>
-                                            <span className="text-slate-600 dark:text-slate-300 truncate max-w-[250px] text-xs">{replyingTo.text}</span>
+                                            <span
+                                                className="text-indigo-600 dark:text-indigo-400 font-bold text-xs">Відповідь</span>
+                                            <span
+                                                className="text-slate-600 dark:text-slate-300 truncate max-w-[250px] text-xs">{replyingTo.text}</span>
                                         </div>
-                                        <button onClick={() => setReplyingTo(null)} className="text-slate-500 hover:text-red-500 font-bold px-2">✕</button>
+                                        <button onClick={() => setReplyingTo(null)}
+                                                className="text-slate-500 hover:text-red-500 font-bold px-2">✕
+                                        </button>
                                     </div>
                                 )}
                                 <div className="p-4 w-full relative">
                                     {isBlocked && (
-                                        <div className="absolute inset-0 z-10 bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-[1px] flex items-center justify-center rounded-b-xl">
+                                        <div
+                                            className="absolute inset-0 z-10 bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-[1px] flex items-center justify-center rounded-b-xl">
                                             <span className="font-bold text-slate-500 dark:text-slate-400">Ви заблокували цього користувача</span>
                                         </div>
                                     )}
 
                                     {isPartnerTyping && (
-                                        <div className="absolute -top-6 left-4 text-xs font-bold text-indigo-500 animate-pulse">
+                                        <div
+                                            className="absolute -top-6 left-4 text-xs font-bold text-indigo-500 animate-pulse">
                                             {displayName} друкує...
                                         </div>
                                     )}
@@ -504,7 +592,8 @@ export default function Chat() {
                                             rows={1}
                                             className="flex-1 resize-none min-h-[44px] max-h-[120px] rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 custom-scrollbar dark:text-white"
                                         />
-                                        <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 h-[44px] rounded-xl mb-[1px]">
+                                        <Button type="submit"
+                                                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 h-[44px] rounded-xl mb-[1px]">
                                             {editingMsgId ? "Зберегти" : "Відправити"}
                                         </Button>
                                     </form>
@@ -512,7 +601,8 @@ export default function Chat() {
                             </CardFooter>
                         </>
                     ) : (
-                        <div className="flex-1 flex items-center justify-center text-slate-500 bg-slate-50 dark:bg-slate-950/50">
+                        <div
+                            className="flex-1 flex items-center justify-center text-slate-500 bg-slate-50 dark:bg-slate-950/50">
                             👈 Оберіть діалог зліва, щоб розпочати спілкування
                         </div>
                     )}

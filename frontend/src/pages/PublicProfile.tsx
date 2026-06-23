@@ -45,10 +45,10 @@ export default function PublicProfile() {
         const headers = { "Authorization": `Bearer ${token}` };
 
         Promise.all([
-            fetch(`http://localhost:3000/api/users/public/${id}`, { headers }).then(r => r.json()),
-            fetch(`http://localhost:3000/api/skills/${id}`, { headers }).then(r => r.json()),
-            fetch(`http://localhost:3000/api/users/${id}/reviews`, { headers }).then(r => r.json()),
-            fetch(`http://localhost:3000/api/users/${id}/achievements`, { headers }).then(r => r.json())
+            fetch(`https://api.synapse.tel/api/users/public/${id}`, { headers }).then(r => r.json()),
+            fetch(`https://api.synapse.tel/api/skills/${id}`, { headers }).then(r => r.json()),
+            fetch(`https://api.synapse.tel/api/users/${id}/reviews`, { headers }).then(r => r.json()),
+            fetch(`https://api.synapse.tel/api/users/${id}/achievements`, { headers }).then(r => r.json())
         ])
             .then(([uData, sData, rData, aData]) => {
                 setUser(uData)
@@ -65,7 +65,7 @@ export default function PublicProfile() {
 
         if (myId && token) {
             // 👇 ИСПРАВЛЕНИЕ: Изменили profile на public, чтобы избежать конфликта с telegram_id
-            fetch(`http://localhost:3000/api/users/public/${myId}`, {
+            fetch(`https://api.synapse.tel/api/users/public/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
                 .then(r => r.json())
@@ -90,7 +90,7 @@ export default function PublicProfile() {
         }
 
         confirmAction(`Ви впевнені, що хочете відгукнутися на це оголошення? З вашого балансу буде списано ${price} хв.`, async () => {
-            const res = await fetch(`http://localhost:3000/api/deals`, {
+            const res = await fetch(`https://api.synapse.tel/api/deals`, {
                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ skill_id: skillId, initiator_id: myId })
             })

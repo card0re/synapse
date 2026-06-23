@@ -58,11 +58,11 @@ export default function Admin() {
         setLoading(true)
         try {
             const [statsRes, dealsRes, skillsRes, newsRes, reportsRes] = await Promise.all([
-                fetch("http://localhost:3000/api/admin/stats", { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch("http://localhost:3000/api/admin/deals", { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch("http://localhost:3000/api/admin/skills", { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch("http://localhost:3000/api/news", { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch("http://localhost:3000/api/admin/reports", { headers: { "Authorization": `Bearer ${token}` } })
+                fetch("https://api.synapse.tel/api/admin/stats", { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch("https://api.synapse.tel/api/admin/deals", { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch("https://api.synapse.tel/api/admin/skills", { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch("https://api.synapse.tel/api/news", { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch("https://api.synapse.tel/api/admin/reports", { headers: { "Authorization": `Bearer ${token}` } })
             ])
             if (statsRes.ok) { const data = await statsRes.json(); setStats(data.stats); setUsers(data.users || []) }
             if (dealsRes.ok) { const data = await dealsRes.json(); setDeals(data.deals || []) }
@@ -74,7 +74,7 @@ export default function Admin() {
 
     const handleSaveUser = async (e: React.FormEvent) => {
         e.preventDefault(); if (!editingUser) return;
-        const res = await fetch(`http://localhost:3000/api/admin/users/${editingUser.id}`, {
+        const res = await fetch(`https://api.synapse.tel/api/admin/users/${editingUser.id}`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({
                 username: editingUser.username, email: editingUser.email, phone_number: editingUser.phone_number,
@@ -86,7 +86,7 @@ export default function Admin() {
 
     const handleSaveDeal = async (e: React.FormEvent) => {
         e.preventDefault(); if (!editingDeal) return;
-        const res = await fetch(`http://localhost:3000/api/deals/${editingDeal.id}/status`, {
+        const res = await fetch(`https://api.synapse.tel/api/deals/${editingDeal.id}/status`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ status: editingDeal.status })
         })
@@ -95,7 +95,7 @@ export default function Admin() {
 
     const handleSaveSkill = async (e: React.FormEvent) => {
         e.preventDefault(); if (!editingSkill) return;
-        const res = await fetch(`http://localhost:3000/api/admin/skills/${editingSkill.id}`, {
+        const res = await fetch(`https://api.synapse.tel/api/admin/skills/${editingSkill.id}`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ title: editingSkill.title, price: Number(editingSkill.price), is_active: editingSkill.is_active })
         })
@@ -104,7 +104,7 @@ export default function Admin() {
 
     const handleSaveNews = async (e: React.FormEvent) => {
         e.preventDefault(); if (!editingNews) return;
-        const res = await fetch(`http://localhost:3000/api/admin/news/${editingNews.id}`, {
+        const res = await fetch(`https://api.synapse.tel/api/admin/news/${editingNews.id}`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ title: editingNews.title, content: editingNews.content })
         })
@@ -112,7 +112,7 @@ export default function Admin() {
     }
 
     const resolveReport = async (id: string, status: 'resolved' | 'dismissed') => {
-        const res = await fetch(`http://localhost:3000/api/admin/reports/${id}/resolve`, {
+        const res = await fetch(`https://api.synapse.tel/api/admin/reports/${id}/resolve`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ status })
         })
@@ -121,7 +121,7 @@ export default function Admin() {
 
     const resolveDispute = async (dealId: string, resolution: 'completed' | 'cancelled') => {
         confirmAction(resolution === 'completed' ? "Завершити і зарахувати хвилини майстру?" : "Скасувати і повернути хвилини учню?", async () => {
-            const res = await fetch(`http://localhost:3000/api/deals/${dealId}/status`, {
+            const res = await fetch(`https://api.synapse.tel/api/deals/${dealId}/status`, {
                 method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ status: resolution })
             });
@@ -130,14 +130,14 @@ export default function Admin() {
         });
     }
 
-    const toggleBan = (id: string) => { confirmAction("Змінити статус блокування?", async () => { await fetch(`http://localhost:3000/api/admin/users/${id}/ban`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } }); loadData() }) }
-    const cancelDeal = (id: string) => { confirmAction("Примусово скасувати угоду?", async () => { await fetch(`http://localhost:3000/api/admin/deals/${id}/cancel`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Угоду скасовано"); loadData() }) }
-    const deleteSkill = (id: string) => { confirmAction("Видалити це оголошення назавжди?", async () => { await fetch(`http://localhost:3000/api/admin/skills/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Оголошення видалено"); loadData() }) }
-    const deleteNews = (id: number) => { confirmAction("Видалити новину?", async () => { await fetch(`http://localhost:3000/api/admin/news/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Новину видалено"); loadData() }) }
+    const toggleBan = (id: string) => { confirmAction("Змінити статус блокування?", async () => { await fetch(`https://api.synapse.tel/api/admin/users/${id}/ban`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } }); loadData() }) }
+    const cancelDeal = (id: string) => { confirmAction("Примусово скасувати угоду?", async () => { await fetch(`https://api.synapse.tel/api/admin/deals/${id}/cancel`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Угоду скасовано"); loadData() }) }
+    const deleteSkill = (id: string) => { confirmAction("Видалити це оголошення назавжди?", async () => { await fetch(`https://api.synapse.tel/api/admin/skills/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Оголошення видалено"); loadData() }) }
+    const deleteNews = (id: number) => { confirmAction("Видалити новину?", async () => { await fetch(`https://api.synapse.tel/api/admin/news/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Новину видалено"); loadData() }) }
 
     const handleCreateNews = async (e: React.FormEvent) => {
         e.preventDefault()
-        const res = await fetch("http://localhost:3000/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ title: newsTitle, content: newsContent }) })
+        const res = await fetch("https://api.synapse.tel/api/admin/news", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ title: newsTitle, content: newsContent }) })
         if (res.ok) { toast.success("Новину опубліковано!"); setNewsTitle(""); setNewsContent(""); loadData() }
     }
 
