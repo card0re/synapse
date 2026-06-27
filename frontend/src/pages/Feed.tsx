@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate, Link, useLocation } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { Search, MapPin, Star, Filter, ShieldAlert, Wallet, ChevronDown, Check } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

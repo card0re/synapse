@@ -26,7 +26,7 @@ export default function Chat() {
     const [newMessage, setNewMessage] = useState("")
 
     const [isPartnerTyping, setIsPartnerTyping] = useState(false)
-    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const lastTypingTimeRef = useRef<number>(0)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
