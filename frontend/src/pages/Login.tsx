@@ -26,7 +26,8 @@ export default function Login() {
         e.preventDefault()
         setLoading(true)
 
-        const endpoint = loginMode === 'email' ? "https://api.synapse.tel/api/users/login/email" : "https://api.synapse.tel/api/users/login"
+        // Обновленные эндпоинты (без поддомена api.)
+        const endpoint = loginMode === 'email' ? "https://synapse.tel/api/users/login/email" : "https://synapse.tel/api/users/login"
         const payload = loginMode === 'email' ? { email, password } : { code }
 
         try {
@@ -45,7 +46,8 @@ export default function Login() {
     const handleGoogleSuccess = async (credentialResponse: any) => {
         setLoading(true)
         try {
-            const response = await fetch("https://api.synapse.tel/api/users/login/google", {
+            // Обновленный эндпоинт (без поддомена api.)
+            const response = await fetch("https://synapse.tel/api/users/login/google", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token: credentialResponse.credential }),
