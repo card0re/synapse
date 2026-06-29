@@ -14,7 +14,7 @@ export default function ProtectedRoute() {
     // Логіка підрахунку непрочитаних повідомлень для глобального навбару
     useEffect(() => {
         if (!token || !userId) return;
-        fetch(`https://api.synapse.tel/api/users/${userId}/chats`, { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`https://synapse.tel/api/users/${userId}/chats`, { headers: { "Authorization": `Bearer ${token}` } })
             .then(res => res.json())
             .then((data: any[]) => {
                 if (Array.isArray(data)) {
