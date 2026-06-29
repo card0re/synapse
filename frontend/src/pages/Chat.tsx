@@ -47,8 +47,8 @@ export default function Chat() {
         if (!token || !myId) return;
         try {
             const [chatsRes, prefsRes] = await Promise.all([
-                fetch(`https://api.synapse.tel/api/users/${myId}/chats`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`https://api.synapse.tel/api/users/${myId}/chat-preferences`, { headers: { "Authorization": `Bearer ${token}` } })
+                fetch(`https://synapse.tel/api/users/${myId}/chats`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`https://synapse.tel/api/users/${myId}/chat-preferences`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
 
             const chats = await chatsRes.json();
@@ -71,7 +71,7 @@ export default function Chat() {
     }
 
     const loadMessages = (partner_id: string) => {
-        fetch(`https://api.synapse.tel/api/users/${myId}/chats/${partner_id}`, { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`https://synapse.tel/api/users/${myId}/chats/${partner_id}`, { headers: { "Authorization": `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => { if (Array.isArray(data)) setMessages(data) })
     }
@@ -83,7 +83,7 @@ export default function Chat() {
 
     useEffect(() => {
         if (partnerId && token && myId) {
-            fetch(`https://api.synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
+            fetch(`https://synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
                 method: "PUT", headers: { "Authorization": `Bearer ${token}` }
             }).then(() => loadContacts())
         }
@@ -133,7 +133,7 @@ export default function Chat() {
                 return [...prev, data];
             })
             if (data.sender_id === partnerId) {
-                fetch(`https://api.synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
+                fetch(`https://synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
                     method: "PUT", headers: { "Authorization": `Bearer ${token}` }
                 })
             }
@@ -203,7 +203,7 @@ export default function Chat() {
 
     const handlePinChat = async () => {
         if (!partnerId) return;
-        await fetch(`https://api.synapse.tel/api/users/${myId}/pin/${partnerId}`, { method: "PUT" });
+        await fetch(`https://synapse.tel/api/users/${myId}/pin/${partnerId}`, { method: "PUT" });
         loadContacts();
         setIsChatMenuOpen(false);
     }
@@ -221,7 +221,7 @@ export default function Chat() {
         const targetId = confirmModal?.partnerId || partnerId;
         if (!targetId) return;
 
-        await fetch(`https://api.synapse.tel/api/users/${myId}/block/${targetId}`, { method: "PUT" });
+        await fetch(`https://synapse.tel/api/users/${myId}/block/${targetId}`, { method: "PUT" });
         await loadContacts();
         setConfirmModal(null);
         toast.success(currentPartner?.is_blocked ? "Користувача розблоковано!" : "Користувача заблоковано!");
@@ -230,7 +230,7 @@ export default function Chat() {
     const executeDeleteChat = async () => {
         if (!confirmModal?.partnerId) return;
         try {
-            const res = await fetch(`https://api.synapse.tel/api/users/${myId}/chats/${confirmModal.partnerId}`, {
+            const res = await fetch(`https://synapse.tel/api/users/${myId}/chats/${confirmModal.partnerId}`, {
                 method: "DELETE", headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {

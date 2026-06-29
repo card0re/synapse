@@ -42,7 +42,7 @@ export default function Register() {
 
         setLoading(true)
 
-        const endpoint = loginMode === 'email' ? "https://api.synapse.tel/api/users/register/email" : "https://api.synapse.tel/api/users/login"
+        const endpoint = loginMode === 'email' ? "https://synapse.tel/api/users/register/email" : "https://synapse.tel/api/users/login"
         const payload = loginMode === 'email' ? { email, password, username } : { code }
 
         try {
@@ -73,7 +73,7 @@ export default function Register() {
 
     const handleGoogleLogin = async (credentialResponse: any) => {
         try {
-            const res = await fetch("https://api.synapse.tel/api/users/login/google", {
+            const res = await fetch("https://synapse.tel/api/users/login/google", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token: credentialResponse.credential })

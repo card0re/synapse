@@ -18,7 +18,7 @@ export default function Leaderboard() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch("https://api.synapse.tel/api/leaderboard")
+        fetch("https://synapse.tel/api/leaderboard")
             .then(res => res.json())
             .then(data => {
                 setLeaders(data.leaderboard || [])

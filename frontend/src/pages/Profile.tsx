@@ -83,15 +83,15 @@ export default function Profile() {
         try {
             const [uRes, sRes, iRes, oRes, cRes, rRes, aRes] = await Promise.all([
                 // 👇 ТУТ ЗМІНИВ tgId на myId
-                fetch(`https://api.synapse.tel/api/users/profile/${myId}`, { headers: authHeaders }),
-                fetch(`https://api.synapse.tel/api/skills/${myId}`, { headers: authHeaders }),
-                fetch(`https://api.synapse.tel/api/deals/incoming/${myId}`, { headers: authHeaders }),
-                fetch(`https://api.synapse.tel/api/deals/outgoing/${myId}`, { headers: authHeaders }),
-                fetch(`https://api.synapse.tel/api/cities`), // Міста залишаються без токена (вони публічні)
+                fetch(`https://synapse.tel/api/users/profile/${myId}`, { headers: authHeaders }),
+                fetch(`https://synapse.tel/api/skills/${myId}`, { headers: authHeaders }),
+                fetch(`https://synapse.tel/api/deals/incoming/${myId}`, { headers: authHeaders }),
+                fetch(`https://synapse.tel/api/deals/outgoing/${myId}`, { headers: authHeaders }),
+                fetch(`https://synapse.tel/api/cities`), // Міста залишаються без токена (вони публічні)
                 // 👇 ТУТ ДОДАВ authHeaders
-                fetch(`https://api.synapse.tel/api/users/${myId}/reviews`, { headers: authHeaders }),
+                fetch(`https://synapse.tel/api/users/${myId}/reviews`, { headers: authHeaders }),
                 // 👇 ТУТ ДОДАВ authHeaders
-                fetch(`https://api.synapse.tel/api/users/${myId}/achievements`, { headers: authHeaders })
+                fetch(`https://synapse.tel/api/users/${myId}/achievements`, { headers: authHeaders })
             ]);
 
             const userData = await uRes.json();
@@ -122,7 +122,7 @@ export default function Profile() {
     useEffect(() => { loadData() }, [myId, tgId, token, navigate])
 
     const handleClaimBonus = async (achievementId: string, bonusMinutes: number) => {
-        const res = await fetch(`https://api.synapse.tel/api/users/${myId}/claim-bonus`, {
+        const res = await fetch(`https://synapse.tel/api/users/${myId}/claim-bonus`, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ achievement_id: achievementId })
@@ -140,7 +140,7 @@ export default function Profile() {
         const payload: any = { status };
         if (time) payload.scheduled_at = new Date(time).toISOString();
 
-        const res = await fetch(`https://api.synapse.tel/api/deals/${dealId}/status`, {
+        const res = await fetch(`https://synapse.tel/api/deals/${dealId}/status`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify(payload)
         });
@@ -149,7 +149,7 @@ export default function Profile() {
     };
 
     const handleCompleteDeal = async (dealId: string, targetId: string) => {
-        const res = await fetch(`https://api.synapse.tel/api/deals/${dealId}/status`, {
+        const res = await fetch(`https://synapse.tel/api/deals/${dealId}/status`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ status: 'completed' })
         });
@@ -164,7 +164,7 @@ export default function Profile() {
     const handleCreateSkill = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!user?.birth_date) { setIsAgeModalOpen(true); return; }
-        const res = await fetch("https://api.synapse.tel/api/skills/", {
+        const res = await fetch("https://synapse.tel/api/skills/", {
             method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify({ user_id: myId, type: skillType, title, description, price: Number(price) })
         })
@@ -178,7 +178,7 @@ export default function Profile() {
         if (new Date().getFullYear() - birthYear < 14) return toast.error("Вам має бути більше 14 років для створення оголошень");
 
         const payload = { ...editForm, city_id: Number(editForm.city_id), birth_date: birthDate }
-        const res = await fetch(`https://api.synapse.tel/api/users/profile/${myId}`, {
+        const res = await fetch(`https://synapse.tel/api/users/profile/${myId}`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify(payload)
         });
@@ -187,13 +187,13 @@ export default function Profile() {
     }
 
     const handleToggleSkill = async (id: string) => {
-        await fetch(`https://api.synapse.tel/api/skills/${id}/toggle`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } });
+        await fetch(`https://synapse.tel/api/skills/${id}/toggle`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } });
         loadData();
     }
 
     const handleDeleteSkill = (id: string) => {
         confirmAction("Точно видалити назавжди?", async () => {
-            await fetch(`https://api.synapse.tel/api/skills/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
+            await fetch(`https://synapse.tel/api/skills/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } });
             loadData();
         });
     }
@@ -201,7 +201,7 @@ export default function Profile() {
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         const payload = { ...editForm, city_id: Number(editForm.city_id) }
-        const res = await fetch(`https://api.synapse.tel/api/users/profile/${myId}`, {
+        const res = await fetch(`https://synapse.tel/api/users/profile/${myId}`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify(payload)
         });
@@ -209,14 +209,14 @@ export default function Profile() {
     }
 
     const sendEmailVerification = async () => {
-        const res = await fetch("https://api.synapse.tel/api/users/verify-email/send", {
+        const res = await fetch("https://synapse.tel/api/users/verify-email/send", {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: kycEmail })
         });
         if (res.ok) { toast.success("Код відправлено!"); setIsCodeSent(true); }
     }
 
     const confirmEmailVerification = async () => {
-        const res = await fetch("https://api.synapse.tel/api/users/verify-email/confirm", {
+        const res = await fetch("https://synapse.tel/api/users/verify-email/confirm", {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myId, email: kycEmail, code: kycCode })
         });
         if (res.ok) { toast.success("Пошту підтверджено!"); loadData(); }
@@ -226,7 +226,7 @@ export default function Profile() {
     const generateTelegramLink = async () => {
         setIsLinkingTg(true);
         try {
-            const res = await fetch(`https://api.synapse.tel/api/users/${myId}/telegram-link`, { method: "POST" })
+            const res = await fetch(`https://synapse.tel/api/users/${myId}/telegram-link`, { method: "POST" })
             if (res.ok) {
                 const data = await res.json()
                 window.open(data.url, "_blank")
@@ -235,7 +235,7 @@ export default function Profile() {
     }
 
     const handleSubmitReview = async (dealId: string, targetId: string) => {
-        const res = await fetch(`https://api.synapse.tel/api/deals/${dealId}/review`, {
+        const res = await fetch(`https://synapse.tel/api/deals/${dealId}/review`, {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reviewer_id: myId, target_id: targetId, score: reviewScore, comment: reviewComment })
         })
         if (res.ok) { toast.success("Дякуємо за ваш відгук!"); loadData(); setReviewDealId(null); }

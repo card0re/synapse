@@ -63,7 +63,7 @@ export default function Feed() {
 
     const fetchBalance = async () => {
         try {
-            const res = await fetch(`https://api.synapse.tel/api/users/public/${myId}`, {
+            const res = await fetch(`https://synapse.tel/api/users/public/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -75,7 +75,7 @@ export default function Feed() {
 
     const fetchCities = async () => {
         try {
-            const res = await fetch("https://api.synapse.tel/api/cities")
+            const res = await fetch("https://synapse.tel/api/cities")
             const data = await res.json()
             if (data.cities) setCities(data.cities)
         } catch (e) { console.error(e) }
@@ -92,7 +92,7 @@ export default function Feed() {
             if (maxPrice) query.append("max_price", maxPrice)
             if (minRating && minRating !== "0") query.append("min_rating", minRating)
 
-            const res = await fetch(`https://api.synapse.tel/api/feed/?${query.toString()}`, {
+            const res = await fetch(`https://synapse.tel/api/feed/?${query.toString()}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -103,7 +103,7 @@ export default function Feed() {
     const loadMatches = async () => {
         setLoadingMatches(true)
         try {
-            const res = await fetch(`https://api.synapse.tel/api/feed/matches?user_id=${myId}`, {
+            const res = await fetch(`https://synapse.tel/api/feed/matches?user_id=${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -157,7 +157,7 @@ export default function Feed() {
         if (!dealConfirm) return;
 
         try {
-            const res = await fetch(`https://api.synapse.tel/api/deals/`, {
+            const res = await fetch(`https://synapse.tel/api/deals/`, {
                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ skill_id: dealConfirm.skillId, initiator_id: myId })
             })
