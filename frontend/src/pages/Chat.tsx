@@ -2,9 +2,11 @@ import React, { useEffect, useState, useRef, Fragment } from "react"
 import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input" // ДОДАНО ІМПОРТ INPUT
 import { ShieldAlert } from "lucide-react"
 import toast from 'react-hot-toast'
 import { useWebSocket } from "../contexts/WebSocketContext"
+import { API_URL } from "@/lib/api"
 
 interface Message {
     id?: number; deal_id?: string; sender_id: string; receiver_id: string;
@@ -25,6 +27,11 @@ export default function Chat() {
     const [messages, setMessages] = useState<Message[]>([])
     const [newMessage, setNewMessage] = useState("")
 
+    // НОВІ СТЕЙТИ ДЛЯ ПОШУКУ
+    const [searchQuery, setSearchQuery] = useState("")
+    const [searchResults, setSearchResults] = useState<any[]>([])
+    const [isSearching, setIsSearching] = useState(false)
+
     const [isPartnerTyping, setIsPartnerTyping] = useState(false)
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const lastTypingTimeRef = useRef<number>(0)
@@ -43,12 +50,42 @@ export default function Chat() {
     const myId = localStorage.getItem("userId")
     const token = localStorage.getItem("token")
 
+    // НОВА ФУНКЦІЯ ПОШУКУ КОРИСТУВАЧІВ
+    const handleSearch = async (query: string) => {
+        setSearchQuery(query)
+        if (query.length < 2) {
+            setSearchResults([])
+            return
+        }
+        setIsSearching(true)
+        try {
+            const res = await fetch(`${API_URL}/users/search?q=${encodeURIComponent(query)}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            })
+            if (res.ok) {
+                const data = await res.json()
+                setSearchResults(data.users || [])
+            }
+        } catch (e) {
+            console.error("Помилка пошуку", e)
+        } finally {
+            setIsSearching(false)
+        }
+    }
+
+    // НОВА ФУНКЦІЯ СТВОРЕННЯ ЧАТУ З ПОШУКУ
+    const handleStartChat = (targetUserId: string) => {
+        setSearchQuery("")
+        setSearchResults([])
+        navigate(`/chat/${targetUserId}`)
+    }
+
     const loadContacts = async () => {
         if (!token || !myId) return;
         try {
             const [chatsRes, prefsRes] = await Promise.all([
-                fetch(`https://synapse.tel/api/users/${myId}/chats`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`https://synapse.tel/api/users/${myId}/chat-preferences`, { headers: { "Authorization": `Bearer ${token}` } })
+                fetch(`${API_URL}/users/${myId}/chats`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`${API_URL}/users/${myId}/chat-preferences`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
 
             const chats = await chatsRes.json();
@@ -71,7 +108,7 @@ export default function Chat() {
     }
 
     const loadMessages = (partner_id: string) => {
-        fetch(`https://synapse.tel/api/users/${myId}/chats/${partner_id}`, { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`${API_URL}/users/${myId}/chats/${partner_id}`, { headers: { "Authorization": `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => { if (Array.isArray(data)) setMessages(data) })
     }
@@ -83,7 +120,7 @@ export default function Chat() {
 
     useEffect(() => {
         if (partnerId && token && myId) {
-            fetch(`https://synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
+            fetch(`${API_URL}/users/${myId}/chats/${partnerId}/read`, {
                 method: "PUT", headers: { "Authorization": `Bearer ${token}` }
             }).then(() => loadContacts())
         }
@@ -133,7 +170,7 @@ export default function Chat() {
                 return [...prev, data];
             })
             if (data.sender_id === partnerId) {
-                fetch(`https://synapse.tel/api/users/${myId}/chats/${partnerId}/read`, {
+                fetch(`${API_URL}/users/${myId}/chats/${partnerId}/read`, {
                     method: "PUT", headers: { "Authorization": `Bearer ${token}` }
                 })
             }
@@ -203,7 +240,7 @@ export default function Chat() {
 
     const handlePinChat = async () => {
         if (!partnerId) return;
-        await fetch(`https://synapse.tel/api/users/${myId}/pin/${partnerId}`, { method: "PUT" });
+        await fetch(`${API_URL}/users/${myId}/pin/${partnerId}`, { method: "PUT" });
         loadContacts();
         setIsChatMenuOpen(false);
     }
@@ -221,7 +258,7 @@ export default function Chat() {
         const targetId = confirmModal?.partnerId || partnerId;
         if (!targetId) return;
 
-        await fetch(`https://synapse.tel/api/users/${myId}/block/${targetId}`, { method: "PUT" });
+        await fetch(`${API_URL}/users/${myId}/block/${targetId}`, { method: "PUT" });
         await loadContacts();
         setConfirmModal(null);
         toast.success(currentPartner?.is_blocked ? "Користувача розблоковано!" : "Користувача заблоковано!");
@@ -230,7 +267,7 @@ export default function Chat() {
     const executeDeleteChat = async () => {
         if (!confirmModal?.partnerId) return;
         try {
-            const res = await fetch(`https://synapse.tel/api/users/${myId}/chats/${confirmModal.partnerId}`, {
+            const res = await fetch(`${API_URL}/users/${myId}/chats/${confirmModal.partnerId}`, {
                 method: "DELETE", headers: { "Authorization": `Bearer ${token}` }
             });
             if (res.ok) {
@@ -328,9 +365,37 @@ export default function Chat() {
                 <Card
                     className="w-1/3 hidden md:flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
                     <CardHeader
-                        className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-4">
+                        className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-4 space-y-4">
                         <CardTitle className="text-lg text-slate-800 dark:text-slate-100">💬 Мої діалоги</CardTitle>
+
+                        {/* ПОЛЕ ПОШУКУ */}
+                        <div className="relative">
+                            <Input
+                                type="text"
+                                placeholder="🔍 Знайти за нікнеймом..."
+                                value={searchQuery}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                className="w-full bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 h-10"
+                            />
+                            {searchQuery.length >= 2 && (
+                                <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                                    {isSearching ? (
+                                        <div className="p-4 text-center text-sm text-slate-500">Шукаємо...</div>
+                                    ) : searchResults.length === 0 ? (
+                                        <div className="p-4 text-center text-sm text-slate-500">Користувачів не знайдено</div>
+                                    ) : (
+                                        searchResults.map(u => (
+                                            <div key={u.id} onClick={() => handleStartChat(u.id)} className="flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0">
+                                                <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}&background=c7d2fe&color=3730a3`} className="w-8 h-8 rounded-full object-cover" alt="ava" />
+                                                <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">{u.username}</span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </CardHeader>
+
                     <div className="flex-1 overflow-y-auto custom-scrollbar">
                         {contacts.length === 0 ? (
                             <p className="p-4 text-slate-500 text-center text-sm">У вас ще немає чатів.</p>

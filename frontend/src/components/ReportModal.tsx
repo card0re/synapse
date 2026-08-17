@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { API_URL } from "@/lib/api"
 // import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import toast from 'react-hot-toast'
@@ -27,7 +28,7 @@ export default function ReportModal({ targetType, targetId, isOpen, onClose }: R
         setLoading(true)
         const token = localStorage.getItem("token")
         try {
-            const res = await fetch("https://synapse.tel/api/reports", {
+            const res = await fetch(`${API_URL}/reports`, {
                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ target_type: targetType, target_id: targetId, reason, details })
             })

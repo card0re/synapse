@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { ShieldAlert, MessageCircle, Wallet } from "lucide-react"
 import toast from 'react-hot-toast'
 import ReportModal from "@/components/ReportModal"
+import { API_URL } from "@/lib/api"
 
 interface User { id: string; username: string; bio: string; avatar_url: string; rating: number; }
 interface Skill { id: string; type: string; title: string; description: string; price: number; is_active: boolean; }
@@ -45,10 +46,10 @@ export default function PublicProfile() {
         const headers = { "Authorization": `Bearer ${token}` };
 
         Promise.all([
-            fetch(`https://synapse.tel/api/users/public/${id}`, { headers }).then(r => r.json()),
-            fetch(`https://synapse.tel/api/skills/${id}`, { headers }).then(r => r.json()),
-            fetch(`https://synapse.tel/api/users/${id}/reviews`, { headers }).then(r => r.json()),
-            fetch(`https://synapse.tel/api/users/${id}/achievements`, { headers }).then(r => r.json())
+            fetch(`${API_URL}/users/public/${id}`, { headers }).then(r => r.json()),
+            fetch(`${API_URL}/skills/${id}`, { headers }).then(r => r.json()),
+            fetch(`${API_URL}/users/${id}/reviews`, { headers }).then(r => r.json()),
+            fetch(`${API_URL}/users/${id}/achievements`, { headers }).then(r => r.json())
         ])
             .then(([uData, sData, rData, aData]) => {
                 setUser(uData)
@@ -65,7 +66,7 @@ export default function PublicProfile() {
 
         if (myId && token) {
             // 👇 ИСПРАВЛЕНИЕ: Изменили profile на public, чтобы избежать конфликта с telegram_id
-            fetch(`https://synapse.tel/api/users/public/${myId}`, {
+            fetch(`${API_URL}/users/public/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
                 .then(r => r.json())
@@ -90,7 +91,7 @@ export default function PublicProfile() {
         }
 
         confirmAction(`Ви впевнені, що хочете відгукнутися на це оголошення? З вашого балансу буде списано ${price} хв.`, async () => {
-            const res = await fetch(`https://synapse.tel/api/deals`, {
+            const res = await fetch(`${API_URL}/deals`, {
                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ skill_id: skillId, initiator_id: myId })
             })

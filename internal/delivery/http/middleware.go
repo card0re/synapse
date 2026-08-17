@@ -2,6 +2,7 @@ package http
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -26,8 +27,9 @@ var (
 func getJWTSecret() []byte {
 	secret := os.Getenv("JWT_SECRET_KEY")
 	if secret == "" {
-		// Повертаємо дефолтний ключ тільки для локальної розробки, якщо не задано
-		return []byte("***REMOVED-JWT-SECRET***")
+		// Раніше тут був хардкодний дефолтний ключ — це дірка в безпеці
+		// (він же лежить у публічному репо), тож без секрету краще впасти.
+		log.Fatal("КРИТИЧНО: JWT_SECRET_KEY не задано")
 	}
 	return []byte(secret)
 }
@@ -111,6 +113,9 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenString := parts[1]
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method")
+			}
 			return getJWTSecret(), nil
 		})
 

@@ -6,11 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"skillswap-irpin/internal/auth"
 	"skillswap-irpin/internal/domain"
 	"skillswap-irpin/internal/service"
 	"time"
 )
+
+// той самий client_id, що зашитий у frontend/src/main.tsx (GoogleOAuthProvider) —
+// не секрет, але без звірки aud будь-який чужий Google id_token пройде як свій
+const defaultGoogleClientID = "286568370439-7nvc2p5mbfsr97joicuoois5uq8gvr5g.apps.googleusercontent.com"
 
 type userUseCase struct {
 	repo         domain.UserRepository
@@ -182,12 +187,27 @@ func (u *userUseCase) GoogleLogin(ctx context.Context, googleToken string) (stri
 	defer resp.Body.Close()
 
 	var googleData struct {
-		Email   string `json:"email"`
-		Name    string `json:"name"`
-		Picture string `json:"picture"`
+		Email         string `json:"email"`
+		EmailVerified string `json:"email_verified"`
+		Name          string `json:"name"`
+		Picture       string `json:"picture"`
+		Aud           string `json:"aud"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&googleData); err != nil {
 		return "", nil, err
+	}
+
+	clientID := os.Getenv("GOOGLE_CLIENT_ID")
+	if clientID == "" {
+		clientID = defaultGoogleClientID
+	}
+	// Без цієї перевірки будь-який дійсний Google id_token (виданий взагалі
+	// іншому застосунку) пройшов би — токен обов'язково має бути виданий саме нам.
+	if googleData.Aud != clientID {
+		return "", nil, errors.New("недійсний токен Google: чужий client_id")
+	}
+	if googleData.EmailVerified != "true" {
+		return "", nil, errors.New("email не підтверджено Google")
 	}
 
 	user, err := u.repo.GetUserByEmail(ctx, googleData.Email)
@@ -588,4 +608,8 @@ func (u *userUseCase) CheckUpcomingLessons(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+func (u *userUseCase) SearchUsers(ctx context.Context, query string, excludeID string) ([]domain.User, error) {
+	return u.repo.SearchUsers(ctx, query, excludeID)
 }

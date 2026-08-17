@@ -1,0 +1,9 @@
+frontend
+.git
+.idea
+*.md
+.env
+credentials.json
+token.json
+api_server
+get_token.go

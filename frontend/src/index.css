@@ -3,14 +3,41 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Задаем базовые радиусы для компонентов (кнопки, карточки) */
+    --radius: 0.75rem;
+    --radius-md: 12px;
+  }
+
   html {
     @apply h-full;
   }
   body {
     @apply min-h-screen bg-slate-50 text-slate-900 transition-colors duration-300;
   }
-  /* Это самое важное: принудительно задаем фон для темной темы */
+  /* Принудительно задаем фон для темной темы */
   .dark body {
     @apply bg-slate-950 text-slate-100;
+  }
+
+  /* --- ГЛОБАЛЬНЫЙ ФИКС КВАДРАТНОСТИ --- */
+
+  /* Делаем все поля ввода мягкими и аккуратными */
+  input, select, textarea {
+    @apply rounded-xl !important;
+  }
+
+  /* Если карточки или блоки профиля сделаны через кастомные div,
+     это правило автоматически добавит им красивое скругление */
+  .card, [class*="card"], [class*="border"] {
+    /* Исключаем из этого правила глобальные обертки, скругляем только элементы интерфейса */
+    &:not(html):not(body):not(main) {
+      @apply rounded-2xl;
+    }
+  }
+
+  /* Превращаем квадратные аватарки в идеальные круги */
+  img[src*="avatar"], [class*="avatar"] {
+    @apply rounded-full !important;
   }
 }

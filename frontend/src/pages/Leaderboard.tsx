@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/card"
 import { Trophy, Star } from "lucide-react"
 import toast from 'react-hot-toast'
+import { API_URL } from "@/lib/api"
 
 interface Leader {
     id: string
@@ -18,7 +19,7 @@ export default function Leaderboard() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetch("https://synapse.tel/api/leaderboard")
+        fetch(`${API_URL}/leaderboard`)
             .then(res => res.json())
             .then(data => {
                 setLeaders(data.leaderboard || [])

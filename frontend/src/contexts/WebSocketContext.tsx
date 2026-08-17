@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { WS_URL } from "@/lib/api"
 
 interface WSContextType {
     ws: WebSocket | null;
@@ -18,7 +19,7 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
         if (!userId || !token) return;
 
         // 👇 ИСПРАВЛЕНИЕ: Теперь передаем token вместо user_id
-        const socket = new WebSocket(`wss://api.synapse.tel/api/ws?token=${token}`);
+        const socket = new WebSocket(`${WS_URL}/ws?token=${token}`);
 
         socket.onopen = () => console.log("🟢 WS підключено (Global Context)");
 

@@ -2,6 +2,7 @@ import { Navigate, Outlet, Link, useLocation } from "react-router-dom"
 import { Home, MessageCircle, Trophy, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useWebSocket } from "../contexts/WebSocketContext"
+import { API_URL } from "@/lib/api"
 
 export default function ProtectedRoute() {
     const token = localStorage.getItem("token")
@@ -14,7 +15,7 @@ export default function ProtectedRoute() {
     // Логіка підрахунку непрочитаних повідомлень для глобального навбару
     useEffect(() => {
         if (!token || !userId) return;
-        fetch(`https://synapse.tel/api/users/${userId}/chats`, { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`${API_URL}/users/${userId}/chats`, { headers: { "Authorization": `Bearer ${token}` } })
             .then(res => res.json())
             .then((data: any[]) => {
                 if (Array.isArray(data)) {

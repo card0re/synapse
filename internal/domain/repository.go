@@ -83,6 +83,7 @@ type UserRepository interface {
 	GetDealStatusNotificationData(ctx context.Context, dealID string) (DealStatusNotificationData, error)
 	GetUserTelegramID(ctx context.Context, userID string) (*int64, error)
 	GetUpcomingDeals(ctx context.Context) ([]Deal, error)
+	SearchUsers(ctx context.Context, query string, excludeID string) ([]User, error)
 }
 
 type UserUseCase interface {
@@ -151,4 +152,5 @@ type UserUseCase interface {
 	ModerateMessage(ctx context.Context, text string) string
 	SendTelegramMessage(ctx context.Context, userID string, message string) error // Додаємо
 	CheckUpcomingLessons(ctx context.Context) error
+	SearchUsers(ctx context.Context, query string, excludeID string) ([]User, error)
 }

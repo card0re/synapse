@@ -34,6 +34,8 @@ type Skill struct {
 	CreatedAt   string  `db:"created_at" json:"created_at"`
 	Price       int     `db:"price" json:"price"`
 	IsActive    bool    `json:"is_active" db:"is_active"`
+
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type Order struct {
