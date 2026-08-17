@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"skillswap-irpin/internal/service"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -36,9 +37,13 @@ func main() {
 	defer db.Close()
 	log.Println("✅ БД успішно підключена")
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
+		Addr:     redisAddr,
+		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
 	if _, err := rdb.Ping(context.Background()).Result(); err != nil {
@@ -85,9 +90,13 @@ func main() {
 	router := gin.Default()
 
 	// ОНОВЛЕНА КОНФІГУРАЦІЯ CORS
+	allowedOrigins := []string{"https://synapse.tel", "https://www.synapse.tel"}
+	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
+		// дозволяє додати тимчасовий origin (напр. *.run.app під час міграції) без ребілду
+		allowedOrigins = append(allowedOrigins, strings.Split(extra, ",")...)
+	}
 	router.Use(cors.New(cors.Config{
-		// Хардкодим всё, что нужно для работы
-		AllowOrigins:     []string{"https://synapse.tel", "https://www.synapse.tel"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -98,9 +107,15 @@ func main() {
 	handler := deliveryHttp.NewHandler(userUC)
 	handler.InitRoutes(router)
 
-	port := ":3000"
-	log.Printf("🚀 API сервера запущений і доступний для фронтенду через тунель на порту %s", port)
-	if err := router.Run(port); err != nil {
+	// Cloud Run (і взагалі будь-який serverless-хостинг) сам призначає порт
+	// через змінну PORT — слухати треба саме на ньому, інакше health-check впаде.
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	addr := ":" + port
+	log.Printf("🚀 API сервер запущений на порту %s", port)
+	if err := router.Run(addr); err != nil {
 		log.Fatalf("Помилка під час запуску сервера: %s", err.Error())
 	}
 }

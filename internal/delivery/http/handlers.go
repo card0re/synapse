@@ -162,6 +162,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 
 			// Оновлення профілю
 			protected.PUT("/users/profile/:userId", h.UpdateProfile)
+			protected.GET("/users/search", h.searchUsers)
 
 			// Навички
 			skills := protected.Group("/skills")
@@ -930,7 +931,7 @@ func (h *Handler) GenerateTelegramLink(c *gin.Context) {
 		return
 	}
 
-	botLink := fmt.Sprintf("https://t.me/ТВІЙ_БОТ?start=%s", token)
+	botLink := fmt.Sprintf("https://t.me/skillswapirp_bot?start=%s", token)
 	c.JSON(http.StatusOK, gin.H{"url": botLink})
 }
 
@@ -1081,4 +1082,30 @@ func (h *Handler) ResolveReportAdmin(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Статус скарги змінено"})
+}
+
+func (h *Handler) searchUsers(c *gin.Context) {
+	query := c.Query("q")
+	if len(query) < 2 {
+		c.JSON(http.StatusOK, gin.H{"users": []domain.User{}}) // Если запрос слишком короткий
+		return
+	}
+
+	myID, exists := c.Get("userId")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неавторизовано"})
+		return
+	}
+
+	users, err := h.userUC.SearchUsers(c.Request.Context(), query, myID.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка пошуку користувачів"})
+		return
+	}
+
+	if users == nil {
+		users = []domain.User{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"users": users})
 }

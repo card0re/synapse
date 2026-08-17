@@ -350,8 +350,24 @@ func (r *UserRepo) CompleteDeal(ctx context.Context, dealID string) error {
 	return tx.Commit()
 }
 
+// шлях до файлів беремо зі змінних оточення, щоб на Cloud Run їх можна було
+// змонтувати з Secret Manager у будь-яке місце (локально — просто лежать поруч)
+func credentialsPath() string {
+	if p := os.Getenv("GOOGLE_CREDENTIALS_PATH"); p != "" {
+		return p
+	}
+	return "credentials.json"
+}
+
+func tokenPath() string {
+	if p := os.Getenv("GOOGLE_TOKEN_PATH"); p != "" {
+		return p
+	}
+	return "token.json"
+}
+
 func generateMeetLink(ctx context.Context, dealID string, scheduledAt *time.Time) (string, error) {
-	b, err := os.ReadFile("credentials.json")
+	b, err := os.ReadFile(credentialsPath())
 	if err != nil {
 		return "", err
 	}
@@ -361,7 +377,7 @@ func generateMeetLink(ctx context.Context, dealID string, scheduledAt *time.Time
 		return "", err
 	}
 
-	f, err := os.Open("token.json")
+	f, err := os.Open(tokenPath())
 	if err != nil {
 		return "", err
 	}
@@ -1182,4 +1198,18 @@ func (r *UserRepo) GetUpcomingDeals(ctx context.Context) ([]domain.Deal, error) 
 	`
 	err := r.db.SelectContext(ctx, &deals, query)
 	return deals, err
+}
+
+func (r *UserRepo) SearchUsers(ctx context.Context, query string, excludeID string) ([]domain.User, error) {
+	var users []domain.User
+
+	// Используем ILIKE для поиска без учета регистра (например, "Иван" найдет "иван")
+	// Знак % означает, что искомый текст может быть в любой части никнейма
+	searchQuery := "%" + query + "%"
+
+	// Запрос, который находит пользователей по имени и игнорирует того, кто ищет
+	q := `SELECT id, username, avatar_url FROM users WHERE username ILIKE $1 AND id != $2 LIMIT 10`
+
+	err := r.db.SelectContext(ctx, &users, q, searchQuery, excludeID)
+	return users, err
 }

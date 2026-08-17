@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import toast from 'react-hot-toast'
 import ReportModal from "@/components/ReportModal"
+import { API_URL } from "@/lib/api"
 
 interface Skill {
     skill_id: string; title: string; description: string; type: string; price: number;
@@ -63,7 +64,7 @@ export default function Feed() {
 
     const fetchBalance = async () => {
         try {
-            const res = await fetch(`https://synapse.tel/api/users/public/${myId}`, {
+            const res = await fetch(`${API_URL}/users/public/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -75,7 +76,7 @@ export default function Feed() {
 
     const fetchCities = async () => {
         try {
-            const res = await fetch("https://synapse.tel/api/cities")
+            const res = await fetch(`${API_URL}/cities`)
             const data = await res.json()
             if (data.cities) setCities(data.cities)
         } catch (e) { console.error(e) }
@@ -92,7 +93,7 @@ export default function Feed() {
             if (maxPrice) query.append("max_price", maxPrice)
             if (minRating && minRating !== "0") query.append("min_rating", minRating)
 
-            const res = await fetch(`https://synapse.tel/api/feed/?${query.toString()}`, {
+            const res = await fetch(`${API_URL}/feed/?${query.toString()}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -103,7 +104,7 @@ export default function Feed() {
     const loadMatches = async () => {
         setLoadingMatches(true)
         try {
-            const res = await fetch(`https://synapse.tel/api/feed/matches?user_id=${myId}`, {
+            const res = await fetch(`${API_URL}/feed/matches?user_id=${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -157,7 +158,7 @@ export default function Feed() {
         if (!dealConfirm) return;
 
         try {
-            const res = await fetch(`https://synapse.tel/api/deals/`, {
+            const res = await fetch(`${API_URL}/deals/`, {
                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ skill_id: dealConfirm.skillId, initiator_id: myId })
             })
@@ -184,7 +185,7 @@ export default function Feed() {
                 <CardContent className="p-5 flex flex-col h-full">
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-3">
-                            <img src={s.user_avatar || "/default-avatar.png"} alt={s.user_name}
+                            <img src={s.user_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.user_name)}&background=c7d2fe&color=3730a3`} alt={s.user_name}
                                  className="w-12 h-12 rounded-2xl object-cover shadow-sm"/>
                             <div>
                                 <Link to={`/profile/${s.user_id}`}
@@ -321,7 +322,7 @@ export default function Feed() {
                                 <div className="space-y-3">
                                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">⭐ Рейтинг від</label>
                                     <div className="flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-2xl">
-                                        {['0', '4', '4.5', '4.8'].map(r => (
+                                        {['0', '4', '4.5', '5'].map(r => (
                                             <button key={r} onClick={() => setMinRating(r)} className={`flex-1 flex items-center justify-center gap-1 text-xs font-bold py-2.5 rounded-xl transition-all ${minRating === r ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                                                 {r !== '0' && <Star className={`w-3 h-3 ${minRating === r ? 'fill-amber-500 text-amber-500' : ''}`} />}
                                                 {r === '0' ? 'Всі' : r}
@@ -371,7 +372,7 @@ export default function Feed() {
                         loading ? (
                             <div className="flex justify-center py-20"><div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
                         ) : feed.length === 0 ? (
-                            <div className="text-center py-20 text-slate-500 font-medium">За вашим запитом нічого не знайдено 😔</div>
+                            <div className="text-center py-20 text-slate-500 font-medium">За вашим запитом нічого не знайдено або стрічка пуста😔</div>
                         ) : (
                             <>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -391,7 +392,7 @@ export default function Feed() {
                         loadingMatches ? (
                             <div className="flex justify-center py-20"><div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div></div>
                         ) : matches.length === 0 ? (
-                            <div className="text-center py-20 text-slate-500 font-medium">Поки що немає рекомендацій. Додайте навички у профіль!</div>
+                            <div className="text-center py-20 text-slate-500 font-medium">Поки що немає рекомендацій. Додайте навички у профіль або зачекайте на пропозиції інших!</div>
                         ) : (
                             <>
                                 <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 text-indigo-800 dark:text-indigo-300 p-4 rounded-2xl mb-6 font-medium text-sm text-center border border-indigo-100 dark:border-indigo-800/30 shadow-sm animate-in fade-in">

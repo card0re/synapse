@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { GoogleLogin } from '@react-oauth/google'
 import { ArrowLeft, Eye, EyeOff } from "lucide-react" // 👈 Додали іконки
 import toast from 'react-hot-toast'
+import { API_URL } from "@/lib/api"
 
 export default function Register() {
     const navigate = useNavigate()
@@ -42,7 +43,7 @@ export default function Register() {
 
         setLoading(true)
 
-        const endpoint = loginMode === 'email' ? "https://synapse.tel/api/users/register/email" : "https://synapse.tel/api/users/login"
+        const endpoint = loginMode === 'email' ? `${API_URL}/users/register/email` : `${API_URL}/users/login`
         const payload = loginMode === 'email' ? { email, password, username } : { code }
 
         try {
@@ -73,7 +74,7 @@ export default function Register() {
 
     const handleGoogleLogin = async (credentialResponse: any) => {
         try {
-            const res = await fetch("https://synapse.tel/api/users/login/google", {
+            const res = await fetch(`${API_URL}/users/login/google`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ token: credentialResponse.credential })
