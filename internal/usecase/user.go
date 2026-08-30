@@ -317,7 +317,7 @@ func (u *userUseCase) CreateUserWithEmail(ctx context.Context, email, passwordHa
 	if err == nil && u.emailService != nil {
 		u.emailService.SendAsync(
 			email,
-			"Вітаємо у SkillSwap Irpin! 🎉",
+			"Вітаємо у Synapse! 🎉",
 			fmt.Sprintf("Привіт, %s! Ваш акаунт успішно створено. Знаходьте крутих майстрів та навчайтесь новому!", username),
 		)
 	}
@@ -331,7 +331,7 @@ func (u *userUseCase) SetEmailCode(ctx context.Context, email, code string) erro
 	if err == nil && u.emailService != nil {
 		u.emailService.SendAsync(
 			email,
-			"🔐 Код підтвердження SkillSwap",
+			"🔐 Код підтвердження Synapse",
 			fmt.Sprintf("Ваш код для підтвердження пошти: %s\nНікому його не передавайте!", code),
 		)
 	}

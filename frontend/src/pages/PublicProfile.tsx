@@ -184,7 +184,7 @@ export default function PublicProfile() {
                 <div className="bg-amber-50 border border-amber-200 dark:bg-amber-900/10 dark:border-amber-900/50 p-4 rounded-2xl shadow-sm flex items-start gap-3">
                     <ShieldAlert className="w-5 h-5 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
                     <p className="text-sm text-amber-800 dark:text-amber-400/90 leading-relaxed">
-                        <strong>Пам'ятайте про обережність.</strong> Ніколи не переказуйте реальні гроші користувачам платформи і не погоджуйтесь на зустрічі в реальному житті з малознайомими людьми поза межами офіційних заходів SkillSwap. Всі розрахунки відбуваються у хвилинах всередині системи.
+                        <strong>Пам'ятайте про обережність.</strong> Ніколи не переказуйте реальні гроші користувачам платформи і не погоджуйтесь на зустрічі в реальному житті з малознайомими людьми поза межами офіційних заходів Synapse. Всі розрахунки відбуваються у хвилинах всередині системи.
                     </p>
                 </div>
 

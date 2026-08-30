@@ -92,7 +92,7 @@ export default function Login() {
             <Card className="w-full max-w-sm shadow-lg border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
                 <CardHeader className="space-y-4">
                     <div>
-                        <CardTitle className="text-2xl font-bold text-center text-slate-900 dark:text-white">Вхід у SkillSwap</CardTitle>
+                        <CardTitle className="text-2xl font-bold text-center text-slate-900 dark:text-white">Вхід у Synapse</CardTitle>
                         <CardDescription className="text-center mt-1 text-slate-500 dark:text-slate-400">Оберіть зручний спосіб авторизації</CardDescription>
                     </div>
 

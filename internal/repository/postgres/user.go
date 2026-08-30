@@ -398,7 +398,7 @@ func generateMeetLink(ctx context.Context, dealID string, scheduledAt *time.Time
 	}
 
 	event := &calendar.Event{
-		Summary:     "SkillSwap Урок",
+		Summary:     "Synapse Урок",
 		Description: "Відеозустріч для угоди " + dealID,
 		Start: &calendar.EventDateTime{
 			DateTime: startTime.Format(time.RFC3339),
@@ -572,7 +572,7 @@ func (r *UserRepo) UpdateDealStatus(ctx context.Context, dealID string, status s
 		meetLink, meetErr := generateMeetLink(ctx, dealID, &dealTime)
 		if meetErr != nil {
 			fmt.Printf("⚠️ Google Meet помилка: %v, використовуємо Jitsi\n", meetErr)
-			meetLink = fmt.Sprintf("https://meet.jit.si/SkillSwap-%s", dealID[:8])
+			meetLink = fmt.Sprintf("https://meet.jit.si/Synapse-%s", dealID[:8])
 		}
 
 		_, err = tx.ExecContext(ctx, "UPDATE deals SET status = 'accepted', meeting_url = $1, scheduled_at = $2, updated_at = NOW() WHERE id = $3", meetLink, dealTime, dealID)
