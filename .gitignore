@@ -11,3 +11,6 @@ client_secret_*.json
 # compiled binary, don't commit build output
 api_server
 api_server.exe
+
+photo_*.jpg
+firebase-debug.log

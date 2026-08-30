@@ -249,7 +249,7 @@ export default function Feed() {
                 className="bg-white/40 dark:bg-slate-950/40 backdrop-blur-xl border-b border-white/20 dark:border-slate-800/50 sticky top-0 z-30 shadow-sm">
                 <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
                     <h1 className="text-xl sm:text-2xl font-black bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent tracking-tight">
-                        SkillSwap
+                        Synapse
                     </h1>
                     {myBalance !== null && (
                         <div className="flex items-center gap-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-700/50 text-indigo-700 dark:text-indigo-300 px-4 py-1.5 rounded-full font-bold text-sm shadow-sm">

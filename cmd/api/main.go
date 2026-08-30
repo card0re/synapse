@@ -37,6 +37,15 @@ func main() {
 	defer db.Close()
 	log.Println("✅ БД успішно підключена")
 
+	// ponytail: колонки users.auth_code/telegram_link_token колись додавались вручну на старому
+	// сервері й не потрапили в дамп при переїзді на Cloud SQL — довели схему до ладу на старті.
+	if _, err := db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_code VARCHAR(6)`); err != nil {
+		log.Printf("⚠️ Не вдалося перевірити колонку auth_code: %v", err)
+	}
+	if _, err := db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_token VARCHAR(64)`); err != nil {
+		log.Printf("⚠️ Не вдалося перевірити колонку telegram_link_token: %v", err)
+	}
+
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
 		redisAddr = "localhost:6379"

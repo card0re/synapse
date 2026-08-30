@@ -606,7 +606,7 @@ func (h *Handler) sendEmailVerification(c *gin.Context) {
 	}
 
 	auth := smtp.PlainAuth("", smtpEmail, smtpPassword, smtpHost)
-	msg := []byte("Subject: Код підтвердження SkillSwap\r\n\r\nВаш код для підтвердження пошти: " + code)
+	msg := []byte("Subject: Код підтвердження Synapse\r\n\r\nВаш код для підтвердження пошти: " + code)
 	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpEmail, []string{input.Email}, msg)
 
 	if err != nil {
