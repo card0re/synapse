@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/google/uuid"
 	"log"
 	"math/big"
 	"skillswap-irpin/internal/domain"
@@ -63,8 +64,11 @@ func (b *TelegramBot) Start() {
 		if update.Message.IsCommand() && update.Message.Command() == "start" {
 
 			deepLinkToken := update.Message.CommandArguments()
+			// ponytail: реальні токени прив'язки — uuid (GenerateTelegramLink). Кнопка входу шле
+			// t.me/bot?start=login — без цієї перевірки "login" летів у LinkTelegram як нібито токен.
+			_, tokenParseErr := uuid.Parse(deepLinkToken)
 
-			if deepLinkToken != "" {
+			if deepLinkToken != "" && tokenParseErr == nil {
 				err := b.userUC.LinkTelegram(context.Background(), deepLinkToken, update.Message.From.ID)
 
 				if err != nil {
