@@ -14,6 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/crypto/bcrypt"
 
 	"skillswap-irpin/internal/bot"
 	deliveryHttp "skillswap-irpin/internal/delivery/http"
@@ -45,6 +46,13 @@ func main() {
 	if _, err := db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_token VARCHAR(64)`); err != nil {
 		log.Printf("⚠️ Не вдалося перевірити колонку telegram_link_token: %v", err)
 	}
+
+	// Реєстрація через пошту писала пароль у password_hash як є, без bcrypt,
+	// через що вхід не працював ні для кого й паролі лежали в БД відкритим
+	// текстом. Перехешовуємо те, що вже збереглося: bcrypt починається з "$2",
+	// тому повторний запуск нічого не змінює. Порожній хеш — акаунти
+	// Google/Telegram, їх не торкаємось.
+	rehashPlaintextPasswords(db)
 
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
@@ -127,4 +135,40 @@ func main() {
 	if err := router.Run(addr); err != nil {
 		log.Fatalf("Помилка під час запуску сервера: %s", err.Error())
 	}
+}
+
+type plaintextPassword struct {
+	ID   string `db:"id"`
+	Hash string `db:"password_hash"`
+}
+
+func rehashPlaintextPasswords(db *sqlx.DB) {
+	var rows []plaintextPassword
+	err := db.Select(&rows, `
+		SELECT id, password_hash FROM users
+		WHERE password_hash IS NOT NULL
+		  AND password_hash <> ''
+		  AND left(password_hash, 2) <> '$2'`)
+	if err != nil {
+		log.Printf("⚠️ Не вдалося перевірити паролі: %v", err)
+		return
+	}
+	if len(rows) == 0 {
+		return
+	}
+
+	fixed := 0
+	for _, r := range rows {
+		hash, err := bcrypt.GenerateFromPassword([]byte(r.Hash), bcrypt.DefaultCost)
+		if err != nil {
+			log.Printf("⚠️ Не вдалося перехешувати пароль користувача %s: %v", r.ID, err)
+			continue
+		}
+		if _, err := db.Exec(`UPDATE users SET password_hash = $1 WHERE id = $2`, string(hash), r.ID); err != nil {
+			log.Printf("⚠️ Не вдалося зберегти хеш для користувача %s: %v", r.ID, err)
+			continue
+		}
+		fixed++
+	}
+	log.Printf("🔐 Перехешовано паролів, що зберігались у відкритому вигляді: %d з %d", fixed, len(rows))
 }
