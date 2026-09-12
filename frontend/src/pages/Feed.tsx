@@ -83,7 +83,12 @@ export default function Feed() {
             const res = await fetch(`${API_URL}/skills/${myId}`)
             if (!res.ok) return
             const data = await res.json()
-            setMySkillCount(Array.isArray(data) ? data.length : 0)
+            // /skills/:id віддає {"skills": [...]}, а не масив — інакше підказка
+            // показувалась би й тим, у кого навички вже є
+            // при нулі навичок Go віддає {"skills": null}, тому null тут — це 0,
+            // а не «невідомо» (помилки вже відсіяні перевіркою res.ok вище)
+            const list = Array.isArray(data) ? data : (data?.skills ?? [])
+            setMySkillCount(Array.isArray(list) ? list.length : 0)
         } catch (e) { /* підказка не критична — просто не показуємо */ }
     }
 
