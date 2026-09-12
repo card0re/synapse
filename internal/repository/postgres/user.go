@@ -85,7 +85,9 @@ func (r *UserRepo) CreateSkill(ctx context.Context, skill *domain.Skill) error {
 }
 
 func (r *UserRepo) GetUserSkills(ctx context.Context, userID string) ([]domain.Skill, error) {
-	var skills []domain.Skill
+	// не nil, а порожній слайс: nil маршалиться в JSON як null, і кожен клієнт
+	// мусив би це окремо обробляти
+	skills := make([]domain.Skill, 0)
 	query := `SELECT * FROM skills WHERE user_id = $1 ORDER BY created_at DESC`
 
 	err := r.db.SelectContext(ctx, &skills, query, userID)
