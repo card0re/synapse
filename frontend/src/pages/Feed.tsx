@@ -23,6 +23,9 @@ export default function Feed() {
 
     const [visibleCount, setVisibleCount] = useState(10)
     const [myBalance, setMyBalance] = useState<number | null>(null)
+    // null = ще не знаємо. Головна дія новачка — виставити свою навичку — була
+    // схована в четвертій вкладці профілю, тому підказуємо прямо у стрічці.
+    const [mySkillCount, setMySkillCount] = useState<number | null>(null)
 
     const [activeTab, setActiveTab] = useState<'all' | 'matches'>('all')
     const [search, setSearch] = useState("")
@@ -52,6 +55,7 @@ export default function Feed() {
         if (myId) {
             loadMatches()
             fetchBalance()
+            fetchMySkills()
         }
     }, [token, navigate, myId])
 
@@ -72,6 +76,15 @@ export default function Feed() {
                 setMyBalance(data.balance_minutes)
             }
         } catch (e) { console.error("Не вдалося завантажити баланс", e) }
+    }
+
+    const fetchMySkills = async () => {
+        try {
+            const res = await fetch(`${API_URL}/skills/${myId}`)
+            if (!res.ok) return
+            const data = await res.json()
+            setMySkillCount(Array.isArray(data) ? data.length : 0)
+        } catch (e) { /* підказка не критична — просто не показуємо */ }
     }
 
     const fetchCities = async () => {
@@ -262,6 +275,32 @@ export default function Feed() {
 
             <div className="max-w-5xl mx-auto px-4 py-6">
 
+                {/* ПЕРШИЙ КРОК: без власної навички неможливо заробити хвилини,
+                    а форма створення схована в четвертій вкладці профілю. */}
+                {mySkillCount === 0 && (
+                    <div className="mb-6 rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-950/40 dark:to-violet-950/30 p-5 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div className="w-12 h-12 shrink-0 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-600/30">
+                                🧠
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h2 className="font-black text-lg text-slate-900 dark:text-white mb-1">
+                                    Додай свою першу навичку
+                                </h2>
+                                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    Хвилини на балансі заробляються тим, що ти навчаєш інших. Достатньо знати щось
+                                    краще за того, хто хоче цьому навчитися.
+                                </p>
+                            </div>
+                            <Link to="/profile?tab=skills" className="shrink-0">
+                                <Button className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-6 shadow-md">
+                                    Додати навичку
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                )}
+
                 {/* ПОШУК І ФІЛЬТРИ */}
                 <div className="mb-6 space-y-3 relative z-20">
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -372,7 +411,36 @@ export default function Feed() {
                         loading ? (
                             <div className="flex justify-center py-20"><div className="w-8 h-8 sm:w-10 sm:h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div></div>
                         ) : feed.length === 0 ? (
-                            <div className="text-center py-20 text-slate-500 font-medium">За вашим запитом нічого не знайдено або стрічка пуста😔</div>
+                            <div className="text-center py-16 px-4">
+                                {search || filterType !== 'all' || cityId !== '0' || minPrice || maxPrice || (minRating && minRating !== '0') ? (
+                                    <>
+                                        <div className="text-5xl mb-4">🔍</div>
+                                        <p className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-2">За цим запитом нічого немає</p>
+                                        <p className="text-slate-500 dark:text-slate-400 mb-6">Спробуй інші слова або скинь фільтри.</p>
+                                        <Button variant="outline" onClick={handleResetFilters} className="font-bold dark:border-slate-700 dark:text-slate-200">
+                                            Скинути фільтри
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="text-5xl mb-4">🌱</div>
+                                        <p className="font-bold text-lg text-slate-700 dark:text-slate-200 mb-2">Стрічка поки порожня</p>
+                                        <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md mx-auto">
+                                            Платформа молода — оголошень ще немає. Виставиш своє першим, і учні
+                                            звернуться саме до тебе.
+                                        </p>
+                                        {/* кнопка лише якщо підказки вище немає — інакше два
+                                            однакові заклики на одному екрані */}
+                                        {mySkillCount !== 0 && (
+                                            <Link to="/profile?tab=skills">
+                                                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-11 px-6">
+                                                    Додати свою навичку
+                                                </Button>
+                                            </Link>
+                                        )}
+                                    </>
+                                )}
+                            </div>
                         ) : (
                             <>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

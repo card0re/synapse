@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,7 +27,12 @@ export default function Profile() {
     const [reviewFilter, setReviewFilter] = useState<number | null>(null)
     const [, setLoading] = useState(true)
 
-    const [activeTab, setActiveTab] = useState<'learning' | 'mentoring' | 'skills' | 'settings'>('learning')
+    // ?tab=skills — щоб посилання зі стрічки вело прямо на створення навички:
+    // вкладка «Навички» четверта й на телефоні не влізає в екран.
+    const [searchParams] = useSearchParams()
+    const initialTab = (['learning', 'mentoring', 'skills', 'settings'] as const)
+        .find(t => t === searchParams.get('tab')) ?? 'learning'
+    const [activeTab, setActiveTab] = useState<'learning' | 'mentoring' | 'skills' | 'settings'>(initialTab)
 
     const [isEditingProfile, setIsEditingProfile] = useState(false)
     const [editForm, setEditForm] = useState({ username: "", phone: "", bio: "", avatar_url: "", city_id: 0 })
@@ -405,9 +410,10 @@ export default function Profile() {
                                 src={user?.avatar_url || `https://ui-avatars.com/api/?name=${user?.username}&background=6366f1&color=fff`}
                                 className="w-28 h-28 rounded-3xl object-cover border-4 border-white dark:border-slate-800 shadow-xl -mt-16 bg-white dark:bg-slate-900 z-10 shrink-0"/>
 
-                            <div className="mt-2 sm:mt-3">
+                            <div className="mt-2 sm:mt-3 min-w-0">
                                 <h1 className="text-3xl font-black dark:text-white flex flex-wrap justify-center sm:justify-start items-center gap-3">
-                                    {user?.username}
+                                    {/* довгий нік без пробілів інакше вилазив за край екрана */}
+                                    <span className="break-all">{user?.username}</span>
                                     <span
                                         className="text-sm font-bold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-3 py-1 rounded-full border border-yellow-200 dark:border-yellow-800/50 flex items-center gap-1.5 shadow-sm mt-1 sm:mt-0">
                                         ⭐ {user?.rating} <span
@@ -566,7 +572,7 @@ export default function Profile() {
                         {id: 'settings', label: '⚙️ Налаштування', count: 0}
                     ].map(tab => (
                         <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-                                className={`flex whitespace-nowrap items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all flex-1 justify-center ${activeTab === tab.id ? 'bg-white dark:bg-slate-800 shadow-md text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
+                                className={`flex whitespace-nowrap items-center gap-2 px-5 py-3 rounded-xl text-sm font-black transition-all shrink-0 flex-none sm:flex-1 justify-center ${activeTab === tab.id ? 'bg-white dark:bg-slate-800 shadow-md text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>
                             {tab.label} {tab.count > 0 && <span
                             className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">{tab.count}</span>}
                         </button>
