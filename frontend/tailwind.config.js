@@ -7,6 +7,10 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                // Manrope має повний кириличний сабсет; застосовується лише на лендінгу
+                display: ['Manrope', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
