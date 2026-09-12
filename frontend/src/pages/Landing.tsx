@@ -74,7 +74,7 @@ export default function Landing() {
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:border-indigo-500 transition-colors">
                             <div className="text-6xl mb-6">🧠</div>
                             <h3 className="text-xl font-bold mb-3">1. Поділися знаннями</h3>
-                            <p className="text-slate-600 dark:text-slate-400">Поділись навчикою, якою володієш найкраще (від математики, до кулінарії). Зароби хвилини на свій баланс.</p>
+                            <p className="text-slate-600 dark:text-slate-400">Поділись навичкою, якою володієш найкраще (від математики, до кулінарії). Зароби хвилини на свій баланс.</p>
                         </div>
 
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 relative overflow-hidden group hover:border-green-500 transition-colors">

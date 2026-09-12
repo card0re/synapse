@@ -6,6 +6,9 @@ export default function Terms() {
     const navigate = useNavigate()
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 font-sans">
+            <title>Умови користування — Synapse</title>
+            <meta name="description" content="Умови користування платформою Synapse: правила обміну знаннями, години та сертифікати." />
+            <link rel="canonical" href="https://synapse.tel/terms" />
             <div className="max-w-4xl mx-auto space-y-6">
                 <Button variant="outline" onClick={() => navigate(-1)} className="dark:border-slate-700 dark:text-slate-200">← Назад</Button>
                 <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-xl">

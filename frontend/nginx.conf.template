@@ -1,8 +1,35 @@
+# Копія сайту на *.run.app не має потрапляти в індекс — інакше Google бачить
+# два однакові сайти (duplicate content) і може ранжувати службовий домен.
+map $host $robots_tag {
+    default          "noindex, nofollow";
+    synapse.tel      "all";
+    www.synapse.tel  "all";
+}
+
+gzip on;
+gzip_comp_level 5;
+gzip_min_length 1024;
+gzip_types text/plain text/css application/javascript application/json image/svg+xml application/xml;
+
 server {
     listen ${PORT};
     server_name _;
     root /usr/share/nginx/html;
     index index.html;
+
+    add_header X-Robots-Tag $robots_tag always;
+
+    # Ассети мають хеш у назві файлу — можна кешувати назовсім.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA-фолбек віддавав 200 навіть на /.env та /.git/config — сканери
+    # трактують це як "знайдено". Віддаємо 404, як і має бути.
+    location ~ /\.(?!well-known) {
+        return 404;
+    }
 
     location / {
         try_files $uri $uri/ /index.html;

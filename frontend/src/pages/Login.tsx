@@ -80,6 +80,9 @@ export default function Login() {
 
     return (
         <div className="min-h-[calc(100vh-64px)] relative bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 font-sans transition-colors duration-300">
+            <title>Вхід — Synapse</title>
+            <meta name="description" content="Увійдіть у Synapse через Google, e-mail або Telegram, щоб продовжити обмін знаннями." />
+            <link rel="canonical" href="https://synapse.tel/login" />
 
             <Button
                 variant="ghost"

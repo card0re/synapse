@@ -98,6 +98,9 @@ export default function Register() {
 
     return (
         <div className="min-h-screen relative flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
+            <title>Реєстрація — Synapse</title>
+            <meta name="description" content="Створіть безкоштовний акаунт Synapse і отримайте 120 стартових хвилин на обмін знаннями." />
+            <link rel="canonical" href="https://synapse.tel/register" />
 
             <Button
                 variant="ghost"
