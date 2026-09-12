@@ -248,7 +248,7 @@ func (r *UserRepo) CreateUserWithEmail(ctx context.Context, email, passwordHash,
 	var user domain.User
 	query := `
 		INSERT INTO users (email, password_hash, username, role, balance_minutes)
-		VALUES ($1, $2, $3, 'user', 0)
+		VALUES ($1, $2, $3, 'user', 120)
 		RETURNING id, email, username, role, balance_minutes, created_at`
 
 	err := r.db.QueryRowContext(ctx, query, email, passwordHash, username).Scan(
