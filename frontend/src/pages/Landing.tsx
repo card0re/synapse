@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button"
 export default function Landing() {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans transition-colors duration-300">
+            <title>Synapse — обмін знаннями, де твій час є валютою</title>
+            <meta name="description" content="Synapse — українська P2P платформа неформальної освіти. Навчай тому, що знаєш, навчайся в інших, зароблюй волонтерські години та конвертуй їх у верифіковані сертифікати." />
+            <link rel="canonical" href="https://synapse.tel/" />
 
             <nav className="fixed w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
                 <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
