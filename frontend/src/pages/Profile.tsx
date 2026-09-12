@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Lock } from "lucide-react"
+import { Lock, LogOut } from "lucide-react"
 import toast from 'react-hot-toast'
 import { API_URL } from "@/lib/api"
 
@@ -282,6 +282,14 @@ export default function Profile() {
 
     const unlockedAchievements = achievements.filter(a => a.is_unlocked);
     const progressPercent = achievements.length > 0 ? Math.round((unlockedAchievements.length / achievements.length) * 100) : 0;
+
+    // Виходу з акаунта в застосунку не було зовсім: токен видалявся лише
+    // обробником 401. Чистимо всі ключі, які ставить логін.
+    const handleLogout = () => {
+        for (const k of ["token", "userId", "role", "tgId"]) localStorage.removeItem(k)
+        toast.success("Ви вийшли з акаунта")
+        navigate("/login", { replace: true })
+    }
 
     return (
         <div className="min-h-[calc(100vh-64px)] bg-transparent p-4 md:p-8 relative z-10">
@@ -1029,6 +1037,15 @@ export default function Profile() {
                             </div>
                         </div>
                     )}
+                </div>
+                <div className="pt-2">
+                    <Button
+                        variant="outline"
+                        onClick={handleLogout}
+                        className="w-full h-12 font-bold border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-950/30"
+                    >
+                        <LogOut className="w-4 h-4 mr-2"/> Вийти з акаунта
+                    </Button>
                 </div>
             </div>
         </div>
