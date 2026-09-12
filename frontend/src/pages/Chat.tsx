@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input" // ДОДАНО ІМПОРТ INPUT
-import { ShieldAlert } from "lucide-react"
+import { ShieldAlert, ArrowLeft } from "lucide-react"
 import toast from 'react-hot-toast'
 import { useWebSocket } from "../contexts/WebSocketContext"
 import { API_URL } from "@/lib/api"
@@ -288,7 +288,7 @@ export default function Chat() {
     if (!myId) return <div className="p-8 text-center">Увійдіть в акаунт</div>
 
     return (
-        <div className="min-h-screen bg-transparent transition-colors duration-300 p-4 sm:p-6">
+        <div className="min-h-[calc(100vh-6rem)] bg-transparent transition-colors duration-300 p-4 sm:p-6">
 
             {confirmModal && (
                 <div
@@ -363,7 +363,7 @@ export default function Chat() {
             <div className="max-w-6xl w-full mx-auto h-[82vh] flex gap-4">
 
                 <Card
-                    className="w-1/3 hidden md:flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    className={`w-full md:w-1/3 ${partnerId ? "hidden" : "flex"} md:flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden`}>
                     <CardHeader
                         className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-4 space-y-4">
                         <CardTitle className="text-lg text-slate-800 dark:text-slate-100">💬 Мої діалоги</CardTitle>
@@ -441,12 +441,19 @@ export default function Chat() {
                 </Card>
 
                 <Card
-                    className="flex-1 flex flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                    className={`flex-1 ${partnerId ? "flex" : "hidden md:flex"} flex-col shadow-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden`}>
                     {partnerId ? (
                         <>
                             <CardHeader
                                 className="bg-slate-100 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800 py-3 px-6 flex flex-row items-center justify-between">
                                 <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/chat")}
+                                        aria-label="Назад до списку діалогів"
+                                        className="md:hidden -ml-2 p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-700/50 transition-colors">
+                                        <ArrowLeft className="w-5 h-5"/>
+                                    </button>
                                     <img src={displayAvatar} alt="ava" className="w-10 h-10 rounded-full"/>
                                     <div>
                                         <CardTitle
