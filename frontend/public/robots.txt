@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Приватні зони: за авторизацією, індексувати нічого (і не треба —
+# там профілі користувачів, зокрема неповнолітніх).
+Disallow: /feed
+Disallow: /profile
+Disallow: /chat
+Disallow: /user/
+Disallow: /admin
+Disallow: /leaderboard
+
+Sitemap: https://synapse.tel/sitemap.xml
