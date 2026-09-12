@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://synapse.tel/</loc><priority>1.0</priority></url>
+  <url><loc>https://synapse.tel/skills</loc><priority>0.9</priority></url>
+  <url><loc>https://synapse.tel/skills/anhliyska-mova</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/ukrayinska-mova</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/matematyka</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/fizyka</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/khimiya</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/biolohiya</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/istoriya</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/prohramuvannya</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/vebdyzayn</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/hra-na-hitari</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/fortepiano</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/malyuvannya</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/fotohrafiya</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/videomontazh</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/kulinariya</loc><priority>0.8</priority></url>
+  <url><loc>https://synapse.tel/skills/shakhy</loc><priority>0.8</priority></url>
   <url><loc>https://synapse.tel/register</loc><priority>0.8</priority></url>
   <url><loc>https://synapse.tel/login</loc><priority>0.5</priority></url>
   <url><loc>https://synapse.tel/terms</loc><priority>0.3</priority></url>
