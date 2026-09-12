@@ -17,6 +17,8 @@ import Terms from "./pages/Terms"
 import Privacy from "./pages/Privacy"
 import Leaderboard from "./pages/Leaderboard"
 import Premium from "./pages/Premium";
+import SkillsIndex from "./pages/SkillsIndex"
+import SkillCategory from "./pages/SkillCategory"
 import { WebSocketProvider } from "./contexts/WebSocketContext"
 
 export default function App() {
@@ -63,6 +65,12 @@ export default function App() {
                                 <Route path="/terms" element={<Terms />} />
                                 <Route path="/privacy" element={<Privacy />} />
                             </Route>
+
+                            {/* Сторінки напрямків — поза обома guard'ами: PublicRoute
+                                відкидає авторизованих на /feed, а ці сторінки мають
+                                відкриватися будь-кому, зокрема з пошуку. */}
+                            <Route path="/skills" element={<SkillsIndex />} />
+                            <Route path="/skills/:slug" element={<SkillCategory />} />
 
                             {/* Захищені сторінки (з нижнім навбаром) */}
                             <Route element={<ProtectedRoute />}>

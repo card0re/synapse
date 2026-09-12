@@ -1,19 +1,11 @@
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
-
-// Напрямки подані як запрошення ("чому можна навчати"), а не як наявна
-// пропозиція — платформа молода, і обіцяти готових менторів було б неправдою.
-const SUBJECTS = [
-    "Англійська мова", "Українська мова", "Математика", "Фізика",
-    "Хімія", "Біологія", "Історія", "Програмування",
-    "Вебдизайн", "Гра на гітарі", "Фортепіано", "Малювання",
-    "Фотографія", "Відеомонтаж", "Кулінарія", "Шахи",
-]
+import { SKILLS } from "@/lib/skills"
 
 const FAQ = [
     {
         q: "Це справді безкоштовно?",
-        a: "Так. На Synapse немає платежів, підписок і платних функцій. Єдина валюта — хвилини, які ти заробляєш, навчаючи інших. Одразу після реєстрації на баланс надходить 120 хвилин, тому почати вчитися можна ще до свого першого заняття.",
+        a: "Навчання й обмін хвилинами — безкоштовні, і гроші між користувачами не ходять узагалі. Одразу після реєстрації на баланс надходить 120 хвилин, тому почати вчитися можна ще до свого першого заняття. Окремо є необовʼязкова підписка Synapse PRO з бонусними хвилинами — вона ще в розробці, і без неї платформа працює повністю.",
     },
     {
         q: "Я нічого не вмію на рівні викладача. Мені тут місце?",
@@ -90,8 +82,8 @@ const TRUST = [
     },
     {
         tone: "bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400",
-        title: "Жодних грошей на платформі",
-        text: "Заплатити або отримати гроші тут неможливо. Прохання про переказ — пряме порушення правил, на яке можна поскаржитися.",
+        title: "Гроші між користувачами не ходять",
+        text: "Розрахунки всередині платформи — лише у хвилинах. Прохання переказати реальні гроші — пряме порушення правил, на яке можна поскаржитися.",
     },
 ]
 
@@ -176,8 +168,8 @@ export default function Landing() {
                     <p className="text-lg md:text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto leading-relaxed">
                         Synapse — платформа неформальної освіти з Ірпеня. Навчай інших тому, що знаєш добре:
                         математиці, англійській, програмуванню чи грі на гітарі. За кожне проведене заняття
-                        отримуєш хвилини — і витрачаєш їх на власне навчання в інших. Грошей тут немає
-                        взагалі: валюта — це час.
+                        отримуєш хвилини — і витрачаєш їх на власне навчання в інших. Між користувачами
+                        гроші не ходять узагалі: валюта тут — час.
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
@@ -197,7 +189,7 @@ export default function Landing() {
                     <dl className="flex flex-wrap justify-center gap-x-8 gap-y-3 pt-6 text-sm">
                         {[
                             ["120 хвилин", "на старт, одразу"],
-                            ["0 ₴", "назавжди, без підписок"],
+                            ["0 ₴", "за навчання й обмін"],
                             ["QR-сертифікат", "за волонтерські години"],
                         ].map(([big, small]) => (
                             <div key={big} className="flex items-baseline gap-2">
@@ -221,16 +213,23 @@ export default function Landing() {
                     </div>
 
                     <ul className="flex flex-wrap gap-2.5">
-                        {SUBJECTS.map((s) => (
-                            <li
-                                key={s}
-                                className="px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm border border-slate-200 dark:border-slate-700"
-                            >
-                                {s}
+                        {SKILLS.map((s) => (
+                            <li key={s.slug}>
+                                <Link
+                                    to={`/skills/${s.slug}`}
+                                    className="inline-block px-4 py-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm border border-slate-200 dark:border-slate-700 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                >
+                                    {s.name}
+                                </Link>
                             </li>
                         ))}
-                        <li className="px-4 py-2 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold text-sm border border-dashed border-indigo-300 dark:border-indigo-700">
-                            + твоя навичка
+                        <li>
+                            <Link
+                                to="/skills"
+                                className="inline-block px-4 py-2 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 font-semibold text-sm border border-dashed border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+                            >
+                                усі напрямки →
+                            </Link>
                         </li>
                     </ul>
 
@@ -248,7 +247,7 @@ export default function Landing() {
                     <div className="text-center mb-14 max-w-2xl mx-auto">
                         <h2 className="text-3xl md:text-4xl font-extrabold mb-4">Як працює економіка часу</h2>
                         <p className="text-lg text-slate-500 dark:text-slate-400">
-                            Без грошей. Тільки твої знання і час, захищені системою ескроу.
+                            Без оплат між користувачами. Тільки твої знання і час, захищені системою ескроу.
                         </p>
                     </div>
 
