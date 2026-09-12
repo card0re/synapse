@@ -424,28 +424,6 @@ func (h *Handler) createReview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Дякуємо за ваш відгук!"})
 }
 
-func (h *Handler) registerWithEmail(c *gin.Context) {
-	var input registerEmailInput
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат. Проверьте почту и пароль (мин. 6 символов)"})
-		return
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при шифровании пароля"})
-		return
-	}
-
-	user, err := h.userUC.CreateUserWithEmail(c.Request.Context(), input.Email, string(hash), input.Username)
-	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Пользователь с таким email уже существует"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Регистрация успешна!", "user": user})
-}
-
 func (h *Handler) loginWithEmail(c *gin.Context) {
 	var input loginEmailInput
 	if err := c.BindJSON(&input); err != nil {
@@ -459,8 +437,8 @@ func (h *Handler) loginWithEmail(c *gin.Context) {
 		return
 	}
 
-	if user.PasswordHash == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Этот аккаунт привязан к Telegram. Войдите через Telegram."})
+	if user.PasswordHash == nil || *user.PasswordHash == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Цей акаунт не має пароля — увійдіть через Google або Telegram."})
 		return
 	}
 
@@ -649,7 +627,13 @@ func (h *Handler) registerEmail(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userUC.CreateUserWithEmail(c.Request.Context(), input.Email, input.Password, input.Username)
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка обробки пароля"})
+		return
+	}
+
+	user, err := h.userUC.CreateUserWithEmail(c.Request.Context(), input.Email, string(hash), input.Username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка реєстрації. Можливо, такий email вже існує."})
 		return
