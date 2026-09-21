@@ -142,11 +142,11 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		{
 			protected.POST("/reports", h.CreateReport)
 			protected.GET("/feed/matches", h.getMatches)
-			protected.GET("/users/profile/:id", h.getProfile)
+			protected.GET("/users/profile/:id", UserOwnershipMiddleware("id"), h.getProfile)
 
 			// 3. МАРШРУТИ ВЛАСНИКА (доступні ТІЛЬКИ власнику акаунта)
 			userOwn := protected.Group("/users/:id")
-			userOwn.Use(UserOwnershipMiddleware())
+			userOwn.Use(UserOwnershipMiddleware("id"))
 			{
 				userOwn.GET("/chats", h.GetUserChats)
 				userOwn.GET("/chats/:partnerId", h.GetChatHistory)
@@ -161,7 +161,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			}
 
 			// Оновлення профілю
-			protected.PUT("/users/profile/:userId", h.UpdateProfile)
+			protected.PUT("/users/profile/:userId", UserOwnershipMiddleware("userId"), h.UpdateProfile)
 			protected.GET("/users/search", h.searchUsers)
 
 			// Навички
@@ -176,10 +176,10 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			deals := protected.Group("/deals")
 			{
 				deals.POST("/", h.createDeal)
-				deals.GET("/incoming/:user_id", h.getIncomingDeals)
+				deals.GET("/incoming/:user_id", UserOwnershipMiddleware("user_id"), h.getIncomingDeals)
 				deals.PUT("/:deal_id/status", h.updateDealStatus)
 				deals.POST("/:deal_id/review", h.createReview)
-				deals.GET("/outgoing/:user_id", h.getOutgoingDeals)
+				deals.GET("/outgoing/:user_id", UserOwnershipMiddleware("user_id"), h.getOutgoingDeals)
 			}
 
 			// 4. АДМІНСЬКІ МАРШРУТИ
@@ -689,7 +689,10 @@ func (h *Handler) getPublicProfile(c *gin.Context) {
 		c.JSON(404, gin.H{"error": "Користувача не знайдено"})
 		return
 	}
-	c.JSON(200, user)
+	// Маршрут відкритий без авторизації: віддавати повну модель не можна,
+	// інакше пошта, телефон і дата народження кожного користувача
+	// витягуються перебором UUID.
+	c.JSON(200, user.PublicView())
 }
 
 func (h *Handler) getUserReviews(c *gin.Context) {

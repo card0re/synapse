@@ -1,9 +1,11 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/smtp"
+	"os"
 	"time"
 )
 
@@ -50,10 +52,14 @@ func (s *emailService) SendAsync(to, subject, body string) {
 }
 
 func (s *emailService) send(job EmailPayload) error {
+	// Gmail тротлить послідовні відправки з одного акаунта.
 	time.Sleep(2 * time.Second)
 
-	from := "skillswapir@gmail.com"
-	password := "***REMOVED-SMTP-PASSWORD***"
+	from := os.Getenv("SMTP_EMAIL")
+	password := os.Getenv("SMTP_PASSWORD")
+	if from == "" || password == "" {
+		return errors.New("SMTP_EMAIL або SMTP_PASSWORD не задано")
+	}
 	smtpHost := "smtp.gmail.com"
 	smtpPort := "587"
 
@@ -62,6 +68,4 @@ func (s *emailService) send(job EmailPayload) error {
 	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", job.To, job.Subject, job.Body))
 
 	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{job.To}, msg)
-
-	return nil
 }
