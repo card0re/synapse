@@ -135,9 +135,18 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func UserOwnershipMiddleware() gin.HandlerFunc {
+// UserOwnershipMiddleware пропускає далі тільки власника акаунта (або адміна).
+// param — ім'я параметра маршруту з ID: різні маршрути називають його
+// по-різному (:id, :userId, :user_id), і саме через це перевірка раніше
+// не вішалась на половину з них.
+func UserOwnershipMiddleware(param string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		reqUserID := c.Param("id") // ID з URL (string)
+		reqUserID := c.Param(param)
+		if reqUserID == "" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ заборонено: не вказано ID"})
+			c.Abort()
+			return
+		}
 		tokenUserIDVal, exists := c.Get("userId")
 
 		if !exists {

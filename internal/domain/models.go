@@ -116,6 +116,17 @@ type User struct {
 	BonusClaimed bool `json:"bonus_claimed" db:"bonus_claimed"`
 }
 
+// PublicView повертає копію користувача без персональних даних.
+// /users/public/:id відкритий без авторизації, тож усе, що тут лишається,
+// видно будь-кому в інтернеті, хто знає UUID.
+func (u User) PublicView() User {
+	u.TelegramID = nil
+	u.PhoneNumber = nil
+	u.Email = nil
+	u.BirthDate = nil
+	return u
+}
+
 type AdminDeal struct {
 	ID            string `db:"deal_id" json:"id"`
 	SkillTitle    string `db:"skill_title" json:"skill_title"`
