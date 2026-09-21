@@ -1,4 +1,6 @@
-version: '3.8'
+# Local development only. Production runs on Cloud Run + Cloud SQL (see README).
+# Every port is bound to 127.0.0.1 on purpose: Docker writes its own iptables rules
+# that bypass ufw, so a bare "5432:5432" publishes the database to the whole internet.
 
 services:
   postgres:
@@ -6,30 +8,29 @@ services:
     container_name: skillswap_db
     environment:
       POSTGRES_USER: root
-      POSTGRES_PASSWORD: ***REMOVED-DB-PASSWORD***
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword}
       POSTGRES_DB: skillswap
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
-  # Додаємо Adminer для зручного перегляду бази в браузері
+  # Adminer — browse the dev database at http://localhost:8081
   adminer:
     image: adminer:latest
     container_name: skillswap_adminer
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8081:8080"
     depends_on:
       - postgres
     restart: unless-stopped
 
-  # ДОДАНО: Контейнер з Redis для кешування
   redis:
     image: redis:alpine
     container_name: skillswap_redis
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     restart: unless-stopped
 
 volumes:

@@ -1,16 +1,26 @@
+# secrets — never commit
 .env
 frontend/.env
-frontend/node_modules
-node_modules
-
-# secrets — leaked before, never again
 credentials.json
 token.json
 client_secret_*.json
 
-# compiled binary, don't commit build output
+# local API scratchpad: holds real bearer tokens, use api.http.example instead
+api.http
+
+# build output
 api_server
 api_server.exe
+frontend/dist/
 
+# deps
+node_modules/
+frontend/node_modules/
+
+# IDE
+.idea/
+.vscode/
+
+# misc
+*.log
 photo_*.jpg
-firebase-debug.log

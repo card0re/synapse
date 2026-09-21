@@ -1,0 +1,26 @@
+# Scratchpad for hitting the API from an IDE HTTP client.
+# Copy to api.http (gitignored) and fill in a real token.
+#
+# Get a token: log in through the UI and copy it out of localStorage,
+# or POST /api/users/login/email with your own credentials.
+
+@host = http://localhost:8080
+@token = <paste a JWT here>
+
+### Current user
+GET {{host}}/api/users/me
+Authorization: Bearer {{token}}
+
+### List skills
+GET {{host}}/api/skills
+
+### Admin: update a user's balance and rating
+PUT {{host}}/api/admin/users/<user-uuid>
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "balance_minutes": 120,
+  "rating": 5.0,
+  "phone_number": "+100000000000"
+}
