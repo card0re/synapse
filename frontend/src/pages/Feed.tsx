@@ -11,7 +11,7 @@ import { API_URL } from "@/lib/api"
 interface Skill {
     skill_id: string; title: string; description: string; type: string; price: number;
     user_id: string; user_name: string; user_avatar: string; city_name: string;
-    user_rating: number; birth_date?: string;
+    user_rating: number; age?: number | null;
 }
 
 interface City { id: number; name: string; }
@@ -143,16 +143,6 @@ export default function Feed() {
         setTimeout(() => loadFeed(), 0)
     }
 
-    const calculateAge = (birthDateStr?: string) => {
-        if (!birthDateStr || birthDateStr === "" || birthDateStr.startsWith("0001")) return null;
-        const birthDate = new Date(birthDateStr);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
-        return age > 0 && age < 120 ? age : null;
-    }
-
     const formatAge = (age: number) => {
         const lastDigit = age % 10;
         const lastTwoDigits = age % 100;
@@ -197,7 +187,7 @@ export default function Feed() {
     }
 
     const renderSkillCard = (s: Skill) => {
-        const age = calculateAge(s.birth_date);
+        const age = s.age ?? null;
         return (
             <Card key={s.skill_id} className="overflow-hidden border border-slate-200/60 dark:border-slate-800/60 shadow-lg hover:shadow-xl transition-all rounded-3xl bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm">
                 <CardContent className="p-5 flex flex-col h-full">
