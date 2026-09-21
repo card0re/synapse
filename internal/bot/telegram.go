@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"github.com/card0re/synapse/internal/domain"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/google/uuid"
 	"log"
 	"math/big"
-	"github.com/card0re/synapse/internal/domain"
 )
 
 type TelegramBot struct {
