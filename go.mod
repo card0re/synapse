@@ -1,4 +1,4 @@
-module skillswap-irpin
+module github.com/card0re/synapse
 
 go 1.26.1
 

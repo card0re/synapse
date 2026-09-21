@@ -13,7 +13,7 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 	"os"
-	"skillswap-irpin/internal/domain"
+	"github.com/card0re/synapse/internal/domain"
 	"time"
 
 	"github.com/jmoiron/sqlx"

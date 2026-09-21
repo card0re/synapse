@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
-	"skillswap-irpin/internal/auth"
-	"skillswap-irpin/internal/domain"
+	"github.com/card0re/synapse/internal/auth"
+	"github.com/card0re/synapse/internal/domain"
 	"strconv"
 	"time"
 )

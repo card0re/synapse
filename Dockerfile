@@ -1,5 +1,4 @@
-# Збірка бекенду для Cloud Run. Фронтенд сюди не входить — він окремо
-# на Firebase Hosting (див. CLOUD_RUN_MIGRATION.md).
+# Збірка бекенду для Cloud Run. Фронтенд має власний образ — frontend/Dockerfile.
 
 FROM golang:1.26-alpine AS builder
 WORKDIR /src
