@@ -2,10 +2,9 @@ package main
 
 import (
 	"context"
+	"github.com/card0re/synapse/internal/service"
 	"log"
 	"os"
-	"github.com/card0re/synapse/internal/service"
-	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -106,12 +105,8 @@ func main() {
 
 	router := gin.Default()
 
-	// ОНОВЛЕНА КОНФІГУРАЦІЯ CORS
-	allowedOrigins := []string{"https://synapse.tel", "https://www.synapse.tel"}
-	if extra := os.Getenv("CORS_ORIGINS"); extra != "" {
-		// дозволяє додати тимчасовий origin (напр. *.run.app під час міграції) без ребілду
-		allowedOrigins = append(allowedOrigins, strings.Split(extra, ",")...)
-	}
+	// Список origin спільний з перевіркою при апгрейді WebSocket.
+	allowedOrigins := deliveryHttp.AllowedOrigins()
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},

@@ -127,3 +127,31 @@ func TestAdminMiddlewareRequiresAdminRole(t *testing.T) {
 		})
 	}
 }
+
+// Зайва кома в CORS_ORIGINS давала порожній origin, на якому gin-contrib/cors
+// панікує при старті й забирає з собою весь сервіс.
+func TestAllowedOriginsIgnoresBlanks(t *testing.T) {
+	t.Setenv("CORS_ORIGINS", " https://preview.example , , https://staging.example ,")
+
+	got := AllowedOrigins()
+	want := []string{
+		"https://synapse.tel",
+		"https://www.synapse.tel",
+		"https://preview.example",
+		"https://staging.example",
+	}
+
+	if len(got) != len(want) {
+		t.Fatalf("отримано %v, очікувалось %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("origin %d: %q, очікувалось %q", i, got[i], want[i])
+		}
+	}
+
+	t.Setenv("CORS_ORIGINS", "")
+	if len(AllowedOrigins()) != 2 {
+		t.Error("без CORS_ORIGINS мають лишитись тільки два продакшн-origin")
+	}
+}
