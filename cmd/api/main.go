@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
-	"skillswap-irpin/internal/service"
+	"github.com/card0re/synapse/internal/service"
 	"strings"
 	"time"
 
@@ -16,10 +16,10 @@ import (
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/crypto/bcrypt"
 
-	"skillswap-irpin/internal/bot"
-	deliveryHttp "skillswap-irpin/internal/delivery/http"
-	"skillswap-irpin/internal/repository/postgres"
-	"skillswap-irpin/internal/usecase"
+	"github.com/card0re/synapse/internal/bot"
+	deliveryHttp "github.com/card0re/synapse/internal/delivery/http"
+	"github.com/card0re/synapse/internal/repository/postgres"
+	"github.com/card0re/synapse/internal/usecase"
 )
 
 func main() {

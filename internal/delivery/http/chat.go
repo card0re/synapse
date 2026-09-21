@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
-	"skillswap-irpin/internal/domain"
+	"github.com/card0re/synapse/internal/domain"
 	"sync"
 	"time"
 )

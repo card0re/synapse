@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"math/big"
-	"skillswap-irpin/internal/domain"
+	"github.com/card0re/synapse/internal/domain"
 )
 
 type TelegramBot struct {

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"skillswap-irpin/internal/auth"
-	"skillswap-irpin/internal/domain"
-	"skillswap-irpin/internal/service"
+	"github.com/card0re/synapse/internal/auth"
+	"github.com/card0re/synapse/internal/domain"
+	"github.com/card0re/synapse/internal/service"
 	"time"
 )
 
