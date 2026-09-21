@@ -34,6 +34,19 @@ func getJWTSecret() []byte {
 	return []byte(secret)
 }
 
+// AllowedOrigins — єдиний список дозволених origin: ним користується і CORS,
+// і перевірка origin при апгрейді WebSocket. Порожні елементи відкидаються
+// свідомо: зайва кома в CORS_ORIGINS роняла gin-contrib/cors панікою на старті.
+func AllowedOrigins() []string {
+	origins := []string{"https://synapse.tel", "https://www.synapse.tel"}
+	for _, o := range strings.Split(os.Getenv("CORS_ORIGINS"), ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			origins = append(origins, o)
+		}
+	}
+	return origins
+}
+
 func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
@@ -184,6 +197,10 @@ func RateLimitAuth() gin.HandlerFunc {
 	}()
 
 	return func(c *gin.Context) {
+		// ponytail: ліміт по IP, а c.ClientIP() читає X-Forwarded-For, який
+		// клієнт може підробити — за балансувальником це обходиться. Ліміт по
+		// самому логіну, а не по адресі, зняв би питання; поки що це
+		// заслін від випадкового перебору, а не від цілеспрямованого.
 		ip := c.ClientIP()
 		mu.Lock()
 

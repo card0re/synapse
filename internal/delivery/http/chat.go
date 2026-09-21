@@ -3,18 +3,32 @@ package http
 import (
 	"context"
 	"fmt"
+	"github.com/card0re/synapse/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"os"
-	"github.com/card0re/synapse/internal/domain"
 	"sync"
 	"time"
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	// Токен для WebSocket живе в localStorage і чужому сайту недоступний,
+	// але пускати апгрейд з будь-якого origin однаково нема потреби —
+	// список той самий, що й у CORS.
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // не браузерний клієнт: його гейт — перевірка токена
+		}
+		for _, allowed := range AllowedOrigins() {
+			if origin == allowed {
+				return true
+			}
+		}
+		return false
+	},
 }
 
 type ChatManager struct {

@@ -3,18 +3,28 @@ package http
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/card0re/synapse/internal/auth"
+	"github.com/card0re/synapse/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"math/big"
 	"net/http"
 	"net/smtp"
 	"os"
-	"github.com/card0re/synapse/internal/auth"
-	"github.com/card0re/synapse/internal/domain"
 	"strconv"
 	"time"
 )
+
+// serverError логує справжню причину і віддає клієнту загальне повідомлення.
+// Помилки з шару репозиторію несуть у собі SQL і назви таблиць — це підказка
+// для того, хто шукає, за що зачепитись, а користувачу вона все одно ні про
+// що не каже.
+func serverError(c *gin.Context, err error) {
+	log.Printf("500 %s %s: %v", c.Request.Method, c.Request.URL.Path, err)
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "Внутрішня помилка сервера"})
+}
 
 type Handler struct {
 	userUC domain.UserUseCase
@@ -214,7 +224,7 @@ func (h *Handler) registerUser(c *gin.Context) {
 
 	user, err := h.userUC.RegisterUser(c.Request.Context(), input.TelegramID, input.Username, input.PhoneNumber)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 
@@ -297,7 +307,7 @@ func (h *Handler) addSkill(c *gin.Context) {
 
 	err := h.userUC.AddSkill(c.Request.Context(), input.UserID, input.Type, input.Title, input.Description, input.Price)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 
@@ -309,7 +319,7 @@ func (h *Handler) getUserSkills(c *gin.Context) {
 
 	skills, err := h.userUC.GetUserSkills(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 
@@ -346,7 +356,7 @@ func (h *Handler) createDeal(c *gin.Context) {
 
 	err := h.userUC.CreateDeal(c.Request.Context(), input.SkillID, input.InitiatorID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 
@@ -358,7 +368,7 @@ func (h *Handler) getIncomingDeals(c *gin.Context) {
 
 	deals, err := h.userUC.GetIncomingDeals(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 
@@ -369,7 +379,7 @@ func (h *Handler) getOutgoingDeals(c *gin.Context) {
 	userID := c.Param("user_id")
 	deals, err := h.userUC.GetOutgoingDeals(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"deals": deals})
@@ -417,7 +427,7 @@ func (h *Handler) createReview(c *gin.Context) {
 
 	err := h.userUC.CreateReview(c.Request.Context(), dealID, input.ReviewerID, input.TargetID, input.Score, input.Comment)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 
@@ -475,7 +485,7 @@ func (h *Handler) updateDealStatus(c *gin.Context) {
 
 	if err != nil {
 		fmt.Printf("\n🔴🔴🔴 ПОМИЛКА БАЗИ: %v 🔴🔴🔴\n\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 
@@ -517,7 +527,7 @@ func (h *Handler) CreateUserByAdmin(c *gin.Context) {
 func (h *Handler) toggleSkill(c *gin.Context) {
 	skillID := c.Param("id")
 	if err := h.userUC.ToggleSkill(c.Request.Context(), skillID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Статус навички змінено!"})
@@ -526,7 +536,7 @@ func (h *Handler) toggleSkill(c *gin.Context) {
 func (h *Handler) deleteSkill(c *gin.Context) {
 	skillID := c.Param("id")
 	if err := h.userUC.DeleteSkill(c.Request.Context(), skillID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		serverError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Навичку видалено!"})
