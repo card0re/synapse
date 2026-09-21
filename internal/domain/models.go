@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,7 +18,44 @@ type FeedItem struct {
 	UserAvatar  string  `json:"user_avatar" db:"user_avatar"`
 	CityName    string  `json:"city_name" db:"city_name"`
 	UserRating  float64 `json:"user_rating" db:"user_rating"`
-	BirthDate   *string `json:"birth_date" db:"birth_date"`
+	BirthDate   *string `json:"-" db:"birth_date"`
+}
+
+// FeedItem їде в публічну стрічку, яку віддають без авторизації. Фронт із
+// дати народження рахує тільки вік, тож рахуємо вік на сервері, а саму дату
+// назовні не пускаємо. Зроблено через MarshalJSON, а не в кожному місці, де
+// стрічка збирається: таких місць два (GetAllFeed і GetMatches), і забути
+// одне — рівно той спосіб, яким подібні поля й витікають.
+func (f FeedItem) MarshalJSON() ([]byte, error) {
+	type feedItem FeedItem // без методу — інакше нескінченна рекурсія
+	return json.Marshal(struct {
+		feedItem
+		Age *int `json:"age"`
+	}{feedItem(f), f.Age()})
+}
+
+// Age — повна кількість років, або nil, якщо дата не задана, порожня,
+// нульова (рік 0001 від time.Time) чи просто неправдоподібна.
+func (f FeedItem) Age() *int {
+	if f.BirthDate == nil || *f.BirthDate == "" {
+		return nil
+	}
+	born, err := time.Parse(time.DateOnly, (*f.BirthDate)[:min(len(*f.BirthDate), 10)])
+	if err != nil {
+		return nil
+	}
+
+	now := time.Now()
+	age := now.Year() - born.Year()
+	// Порівнюємо місяць і день, а не YearDay: через високосні роки той самий
+	// день народження дає різний YearDay і рік життя губиться.
+	if now.Month() < born.Month() || (now.Month() == born.Month() && now.Day() < born.Day()) {
+		age--
+	}
+	if age <= 0 || age >= 120 {
+		return nil
+	}
+	return &age
 }
 
 type City struct {
