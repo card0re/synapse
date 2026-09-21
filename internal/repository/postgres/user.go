@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/card0re/synapse/internal/domain"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"golang.org/x/oauth2"
@@ -13,7 +14,6 @@ import (
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
 	"os"
-	"github.com/card0re/synapse/internal/domain"
 	"time"
 
 	"github.com/jmoiron/sqlx"

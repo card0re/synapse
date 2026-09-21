@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"os"
 	"github.com/card0re/synapse/internal/auth"
 	"github.com/card0re/synapse/internal/domain"
 	"github.com/card0re/synapse/internal/service"
+	"net/http"
+	"os"
 	"time"
 )
 
