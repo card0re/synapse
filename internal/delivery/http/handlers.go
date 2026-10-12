@@ -11,8 +11,6 @@ import (
 	"log"
 	"math/big"
 	"net/http"
-	"net/smtp"
-	"os"
 	"strconv"
 	"time"
 )
@@ -30,17 +28,26 @@ type Handler struct {
 	userUC domain.UserUseCase
 }
 
+// currentUserID — ID власника токена. Усе, що стосується чужого акаунта чи
+// чужих хвилин, має звірятися саме з ним, а не з полем у тілі запиту:
+// тіло пише клієнт, і туди можна вписати будь-який UUID.
+func currentUserID(c *gin.Context) string {
+	v, _ := c.Get("userId")
+	s, _ := v.(string)
+	return s
+}
+
+func isAdmin(c *gin.Context) bool { return c.GetString("userRole") == "admin" }
+
 type loginInput struct {
 	Code string `json:"code" binding:"required"`
 }
 
 type createDealInput struct {
-	SkillID     string `json:"skill_id" binding:"required"`
-	InitiatorID string `json:"initiator_id" binding:"required"`
+	SkillID string `json:"skill_id" binding:"required"`
 }
 
 type addSkillInput struct {
-	UserID      string  `json:"user_id" binding:"required"`
 	Type        string  `json:"type" binding:"required"`
 	Title       string  `json:"title" binding:"required"`
 	Description *string `json:"description"`
@@ -70,10 +77,9 @@ type registerInput struct {
 }
 
 type createReviewInput struct {
-	ReviewerID string  `json:"reviewer_id" binding:"required"`
-	TargetID   string  `json:"target_id" binding:"required"`
-	Score      int     `json:"score" binding:"required"`
-	Comment    *string `json:"comment"`
+	TargetID string  `json:"target_id" binding:"required"`
+	Score    int     `json:"score" binding:"required"`
+	Comment  *string `json:"comment"`
 }
 
 type uriInput struct {
@@ -95,8 +101,8 @@ type googleLoginInput struct {
 }
 
 type registerEmailInput struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
 	Username string `json:"username" binding:"required"`
 }
 
@@ -126,12 +132,10 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			authGroup.POST("/login/google", h.googleLogin)
 			authGroup.POST("/register/email", h.registerEmail)
 			authGroup.POST("/verify-email/send", h.sendEmailVerification)
-			authGroup.POST("/verify-email/confirm", h.confirmEmailVerification)
 		}
 
 		// Решта публічних маршрутів без лімітів
 		api.GET("/cities", h.GetCities)
-		api.GET("/news", h.GetNews)
 		api.GET("/feed/", h.getFeed)
 
 		// 👇 ПЕРЕНЕСЕНО СЮДИ 👇
@@ -150,6 +154,8 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		protected := api.Group("/")
 		protected.Use(AuthMiddleware())
 		{
+			protected.GET("/news", h.GetNews)
+			protected.POST("/users/verify-email/confirm", h.confirmEmailVerification)
 			protected.POST("/reports", h.CreateReport)
 			protected.GET("/feed/matches", h.getMatches)
 			protected.GET("/users/profile/:id", UserOwnershipMiddleware("id"), h.getProfile)
@@ -234,6 +240,16 @@ func (h *Handler) registerUser(c *gin.Context) {
 	})
 }
 
+// abortIfBanned — єдине місце, де бан узагалі щось означає: далі токен видається
+// на 72 години, тож бан діє з наступного входу.
+func abortIfBanned(c *gin.Context, user *domain.User) bool {
+	if user != nil && user.IsBanned {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Акаунт заблоковано адміністрацією"})
+		return true
+	}
+	return false
+}
+
 func (h *Handler) loginUser(c *gin.Context) {
 	var input loginInput
 	if err := c.BindJSON(&input); err != nil {
@@ -244,6 +260,10 @@ func (h *Handler) loginUser(c *gin.Context) {
 	user, err := h.userUC.VerifyAuthCode(c.Request.Context(), input.Code)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	if abortIfBanned(c, user) {
 		return
 	}
 
@@ -305,7 +325,7 @@ func (h *Handler) addSkill(c *gin.Context) {
 		return
 	}
 
-	err := h.userUC.AddSkill(c.Request.Context(), input.UserID, input.Type, input.Title, input.Description, input.Price)
+	err := h.userUC.AddSkill(c.Request.Context(), currentUserID(c), input.Type, input.Title, input.Description, input.Price)
 	if err != nil {
 		serverError(c, err)
 		return
@@ -354,9 +374,9 @@ func (h *Handler) createDeal(c *gin.Context) {
 		return
 	}
 
-	err := h.userUC.CreateDeal(c.Request.Context(), input.SkillID, input.InitiatorID)
-	if err != nil {
-		serverError(c, err)
+	if err := h.userUC.CreateDeal(c.Request.Context(), input.SkillID, currentUserID(c)); err != nil {
+		// "недостатньо хвилин", "це ваша власна навичка" — це відповідь користувачу, не 500
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -425,7 +445,12 @@ func (h *Handler) createReview(c *gin.Context) {
 		return
 	}
 
-	err := h.userUC.CreateReview(c.Request.Context(), dealID, input.ReviewerID, input.TargetID, input.Score, input.Comment)
+	if !h.isDealParticipant(c, dealID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Відгук може залишити лише учасник угоди"})
+		return
+	}
+
+	err := h.userUC.CreateReview(c.Request.Context(), dealID, currentUserID(c), input.TargetID, input.Score, input.Comment)
 	if err != nil {
 		serverError(c, err)
 		return
@@ -458,6 +483,10 @@ func (h *Handler) loginWithEmail(c *gin.Context) {
 		return
 	}
 
+	if abortIfBanned(c, user) {
+		return
+	}
+
 	token, err := auth.GenerateToken(user.ID, user.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации токена"})
@@ -465,6 +494,21 @@ func (h *Handler) loginWithEmail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Успешный вход", "token": token, "user": user})
+}
+
+// isDealParticipant — угодою розпоряджаються лише її дві сторони (ну і адмін).
+// ID угоди — звичайний UUID у посиланні, і без цієї перевірки будь-який
+// залогінений користувач міг завершити або скасувати чужий урок.
+func (h *Handler) isDealParticipant(c *gin.Context, dealID string) bool {
+	if isAdmin(c) {
+		return true
+	}
+	deal, err := h.userUC.GetDealByID(c.Request.Context(), dealID)
+	if err != nil {
+		return false
+	}
+	me := currentUserID(c)
+	return me != "" && (deal.InitiatorID == me || deal.ReceiverID == me)
 }
 
 func (h *Handler) updateDealStatus(c *gin.Context) {
@@ -476,15 +520,12 @@ func (h *Handler) updateDealStatus(c *gin.Context) {
 		return
 	}
 
-	var err error
-	if input.Status == "completed" {
-		err = h.userUC.CompleteDeal(c.Request.Context(), dealID)
-	} else {
-		err = h.userUC.UpdateDealStatus(c.Request.Context(), dealID, input.Status, input.ScheduledAt)
+	if !h.isDealParticipant(c, dealID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Це не ваша угода"})
+		return
 	}
 
-	if err != nil {
-		fmt.Printf("\n🔴🔴🔴 ПОМИЛКА БАЗИ: %v 🔴🔴🔴\n\n", err)
+	if err := h.userUC.UpdateDealStatus(c.Request.Context(), dealID, input.Status, input.ScheduledAt); err != nil {
 		serverError(c, err)
 		return
 	}
@@ -524,8 +565,24 @@ func (h *Handler) CreateUserByAdmin(c *gin.Context) {
 	c.JSON(http.StatusNotImplemented, gin.H{"message": "Функція створення користувача ще в розробці"})
 }
 
+// ownsSkill — оголошенням керує лише його автор: ID оголошення видно всім у стрічці.
+func (h *Handler) ownsSkill(c *gin.Context, skillID string) bool {
+	if isAdmin(c) {
+		return true
+	}
+	skill, err := h.userUC.GetSkillByID(c.Request.Context(), skillID)
+	if err != nil {
+		return false
+	}
+	return skill.UserID != "" && skill.UserID == currentUserID(c)
+}
+
 func (h *Handler) toggleSkill(c *gin.Context) {
 	skillID := c.Param("id")
+	if !h.ownsSkill(c, skillID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Це не ваше оголошення"})
+		return
+	}
 	if err := h.userUC.ToggleSkill(c.Request.Context(), skillID); err != nil {
 		serverError(c, err)
 		return
@@ -535,6 +592,10 @@ func (h *Handler) toggleSkill(c *gin.Context) {
 
 func (h *Handler) deleteSkill(c *gin.Context) {
 	skillID := c.Param("id")
+	if !h.ownsSkill(c, skillID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Це не ваше оголошення"})
+		return
+	}
 	if err := h.userUC.DeleteSkill(c.Request.Context(), skillID); err != nil {
 		serverError(c, err)
 		return
@@ -552,6 +613,10 @@ func (h *Handler) googleLogin(c *gin.Context) {
 	token, user, err := h.userUC.GoogleLogin(c.Request.Context(), input.Token)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	if abortIfBanned(c, user) {
 		return
 	}
 
@@ -582,35 +647,15 @@ func (h *Handler) sendEmailVerification(c *gin.Context) {
 		return
 	}
 
-	smtpEmail := os.Getenv("SMTP_EMAIL")
-	smtpPassword := os.Getenv("SMTP_PASSWORD")
-	smtpHost := "smtp.gmail.com"
-	smtpPort := "587"
-
-	if smtpEmail == "" || smtpPassword == "" {
-		fmt.Println("🚨 ПОМИЛКА: Не задано SMTP_EMAIL або SMTP_PASSWORD у файлі .env")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка конфігурації сервера пошти"})
-		return
-	}
-
-	auth := smtp.PlainAuth("", smtpEmail, smtpPassword, smtpHost)
-	msg := []byte("Subject: Код підтвердження Synapse\r\n\r\nВаш код для підтвердження пошти: " + code)
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpEmail, []string{input.Email}, msg)
-
-	if err != nil {
-		fmt.Printf("🚨 Помилка відправки листа: %v\n", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не вдалося відправити лист"})
-		return
-	}
-
+	// Лист відправляє SetEmailCode через чергу email-воркера. Раніше той самий
+	// код додатково слався ще й звідси — користувач отримував два однакові листи.
 	c.JSON(http.StatusOK, gin.H{"message": "Код відправлено!"})
 }
 
 func (h *Handler) confirmEmailVerification(c *gin.Context) {
 	var input struct {
-		UserID string `json:"user_id"`
-		Email  string `json:"email"`
-		Code   string `json:"code"`
+		Email string `json:"email"`
+		Code  string `json:"code"`
 	}
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Невірні дані"})
@@ -622,7 +667,7 @@ func (h *Handler) confirmEmailVerification(c *gin.Context) {
 		return
 	}
 
-	if err := h.userUC.LinkEmail(c.Request.Context(), input.UserID, input.Email); err != nil {
+	if err := h.userUC.LinkEmail(c.Request.Context(), currentUserID(c), input.Email); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ця пошта вже зайнята або сталася помилка"})
 		return
 	}
@@ -672,7 +717,7 @@ func (h *Handler) toggleBan(c *gin.Context) {
 
 func (h *Handler) adminCancelDeal(c *gin.Context) {
 	dealID := c.Param("id")
-	if err := h.userUC.UpdateDealStatus(c.Request.Context(), dealID, "cancelled", nil); err != nil {
+	if err := h.userUC.AdminCancelDeal(c.Request.Context(), dealID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не вдалося скасувати угоду"})
 		return
 	}
@@ -738,14 +783,9 @@ func (h *Handler) deleteAdminSkill(c *gin.Context) {
 }
 
 func (h *Handler) GetNews(c *gin.Context) {
-	uidStr := c.Query("user_id")
-
-	if uidStr == "" {
-		userID, _ := c.Get("userId")
-		if v, ok := userID.(string); ok {
-			uidStr = v
-		}
-	}
+	// user_id раніше брався з query — по чужому UUID було видно чужі особисті
+	// новини, зокрема причини видалення оголошень модератором.
+	uidStr := currentUserID(c)
 
 	news, err := h.userUC.GetNews(c.Request.Context(), uidStr)
 	if err != nil {
@@ -873,9 +913,9 @@ func (h *Handler) MarkChatAsRead(c *gin.Context) {
 }
 
 func (h *Handler) getMatches(c *gin.Context) {
-	userID := c.Query("user_id")
+	userID := currentUserID(c)
 	if userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Не вказано user_id"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неавторизовано"})
 		return
 	}
 
