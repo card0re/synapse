@@ -109,7 +109,7 @@ export default function Premium() {
                     <div className="flex items-center gap-4 text-slate-600 dark:text-slate-400 max-w-2xl text-center md:text-left">
                         <Info size={32} className="shrink-0 text-indigo-500" />
                         <p className="text-sm font-medium leading-relaxed">
-                            Підписка продовжується автоматично щомісяця. Ви можете скасувати її в будь-який момент у налаштуваннях профілю. Бонусні хвилини нараховуються миттєво після успішної оплати.
+                            Synapse PRO ще в розробці: оплата не підключена, підписку оформити поки неможливо, і бонусні хвилини поки не нараховуються. Платформа повністю працює без неї.
                         </p>
                     </div>
                     <Button variant="link" className="text-indigo-600 dark:text-indigo-400 font-bold shrink-0">

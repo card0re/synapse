@@ -240,7 +240,10 @@ export default function Chat() {
 
     const handlePinChat = async () => {
         if (!partnerId) return;
-        await fetch(`${API_URL}/users/${myId}/pin/${partnerId}`, { method: "PUT" });
+        // без токена ручка відповідає 401 — закріплення мовчки не працювало
+        await fetch(`${API_URL}/users/${myId}/pin/${partnerId}`, {
+            method: "PUT", headers: { "Authorization": `Bearer ${token}` }
+        });
         loadContacts();
         setIsChatMenuOpen(false);
     }
@@ -258,7 +261,9 @@ export default function Chat() {
         const targetId = confirmModal?.partnerId || partnerId;
         if (!targetId) return;
 
-        await fetch(`${API_URL}/users/${myId}/block/${targetId}`, { method: "PUT" });
+        await fetch(`${API_URL}/users/${myId}/block/${targetId}`, {
+            method: "PUT", headers: { "Authorization": `Bearer ${token}` }
+        });
         await loadContacts();
         setConfirmModal(null);
         toast.success(currentPartner?.is_blocked ? "Користувача розблоковано!" : "Користувача заблоковано!");

@@ -196,7 +196,7 @@ export default function Feed() {
                             <img src={s.user_avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.user_name)}&background=c7d2fe&color=3730a3`} alt={s.user_name}
                                  className="w-12 h-12 rounded-2xl object-cover shadow-sm"/>
                             <div>
-                                <Link to={`/profile/${s.user_id}`}
+                                <Link to={`/user/${s.user_id}`}
                                       className="font-black text-slate-800 dark:text-white hover:text-indigo-600 transition-colors">
                                     {s.user_name}
                                 </Link>

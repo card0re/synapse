@@ -189,12 +189,26 @@ export default function Profile() {
         else { toast.error("Помилка створення оголошення"); }
     }
 
+    // Бекенд перезаписує профіль цілком: чого немає в тілі — те стає NULL.
+    // Через це кожне збереження профілю стирало телефон (ключ звався phone, а
+    // не phone_number) і дату народження, якої у формі немає взагалі.
+    const profilePayload = (overrides: Record<string, unknown> = {}) => ({
+        username: editForm.username,
+        phone_number: editForm.phone,
+        bio: editForm.bio,
+        avatar_url: editForm.avatar_url,
+        city_id: Number(editForm.city_id) || null,
+        birth_date: user?.birth_date ?? null,
+        ...overrides,
+    })
+
     const handleSaveBirthDate = async () => {
         if (!birthDate) return toast.error("Будь ласка, вкажіть дату народження");
-        const birthYear = new Date(birthDate).getFullYear();
-        if (new Date().getFullYear() - birthYear < 14) return toast.error("Вам має бути більше 14 років для створення оголошень");
+        const born = new Date(birthDate);
+        const age14 = new Date(born.getFullYear() + 14, born.getMonth(), born.getDate());
+        if (age14 > new Date()) return toast.error("Вам має бути більше 14 років для створення оголошень");
 
-        const payload = { ...editForm, city_id: Number(editForm.city_id), birth_date: birthDate }
+        const payload = profilePayload({ birth_date: birthDate })
         const res = await fetch(`${API_URL}/users/profile/${myId}`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify(payload)
@@ -217,7 +231,7 @@ export default function Profile() {
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        const payload = { ...editForm, city_id: Number(editForm.city_id) }
+        const payload = profilePayload()
         const res = await fetch(`${API_URL}/users/profile/${myId}`, {
             method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
             body: JSON.stringify(payload)
@@ -234,7 +248,9 @@ export default function Profile() {
 
     const confirmEmailVerification = async () => {
         const res = await fetch(`${API_URL}/users/verify-email/confirm`, {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: myId, email: kycEmail, code: kycCode })
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ email: kycEmail, code: kycCode })
         });
         if (res.ok) { toast.success("Пошту підтверджено!"); loadData(); }
         else { toast.error("Невірний код"); }
@@ -256,7 +272,9 @@ export default function Profile() {
 
     const handleSubmitReview = async (dealId: string, targetId: string) => {
         const res = await fetch(`${API_URL}/deals/${dealId}/review`, {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reviewer_id: myId, target_id: targetId, score: reviewScore, comment: reviewComment })
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ target_id: targetId, score: reviewScore, comment: reviewComment })
         })
         if (res.ok) { toast.success("Дякуємо за ваш відгук!"); loadData(); setReviewDealId(null); }
         else { toast.error("Помилка відправки відгуку") }

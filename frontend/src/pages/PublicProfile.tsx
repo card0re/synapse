@@ -91,7 +91,7 @@ export default function PublicProfile() {
         }
 
         confirmAction(`Ви впевнені, що хочете відгукнутися на це оголошення? З вашого балансу буде списано ${price} хв.`, async () => {
-            const res = await fetch(`${API_URL}/deals`, {
+            const res = await fetch(`${API_URL}/deals/`, {
                 method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                 body: JSON.stringify({ skill_id: skillId, initiator_id: myId })
             })
