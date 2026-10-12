@@ -113,6 +113,7 @@ type IncomingDeal struct {
 	InitiatorPhone *string    `db:"initiator_phone" json:"initiator_phone"`
 	Status         string     `db:"status" json:"status"`
 	ScheduledAt    *time.Time `db:"scheduled_at" json:"scheduled_at"`
+	MeetingURL     *string    `db:"meeting_url" json:"meeting_url"`
 }
 
 type OutgoingDeal struct {
@@ -123,6 +124,7 @@ type OutgoingDeal struct {
 	MasterID    string     `db:"master_id" json:"master_id"`
 	Status      string     `db:"status" json:"status"`
 	ScheduledAt *time.Time `db:"scheduled_at" json:"scheduled_at"`
+	MeetingURL  *string    `db:"meeting_url" json:"meeting_url"`
 }
 
 type User struct {

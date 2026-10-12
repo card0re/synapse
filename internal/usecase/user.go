@@ -475,14 +475,9 @@ func (u *userUseCase) CreateDeal(ctx context.Context, skillID, initiatorID strin
 		return err
 	}
 
-	if user.BalanceMinutes < skill.Price {
-		return fmt.Errorf("недостатньо хвилин на балансі")
-	}
-
-	if err := u.repo.UpdateUserMinutes(ctx, initiatorID, -skill.Price, skill.Price); err != nil {
-		return err
-	}
-
+	// Баланс чіпає тільки repo.CreateDeal — там це одна транзакція з SELECT ... FOR UPDATE.
+	// Раніше хвилини списувались ще й тут, тож за урок знімали подвійну ціну, а якщо
+	// транзакція потім відкочувалась — списане просто зависало в заморожених.
 	err = u.repo.CreateDeal(ctx, skillID, initiatorID)
 
 	if err == nil {
@@ -503,21 +498,19 @@ func (u *userUseCase) UpdateDealStatus(ctx context.Context, dealID, newStatus st
 		return err
 	}
 
-	if newStatus == "cancelled" || newStatus == "rejected" {
-		if deal.Status == "pending" || newStatus == "rejected" {
-			u.repo.UpdateUserMinutes(ctx, deal.InitiatorID, skill.Price, -skill.Price)
-		} else if deal.Status == "cancel_requested" || deal.Status == "disputed" {
-			u.repo.UpdateUserMinutes(ctx, deal.InitiatorID, skill.Price, -skill.Price)
-		} else if deal.Status == "accepted" && newStatus == "cancelled" {
-			newStatus = "cancel_requested"
-		}
+	// Скасувати вже підтверджений урок в односторонньому порядку не можна —
+	// це лише запит, який другий бік має підтвердити.
+	if newStatus == "cancelled" && deal.Status == "accepted" {
+		newStatus = "cancel_requested"
 	}
 
+	// Хвилини рухає лише репозиторій, в одній транзакції зі зміною статусу.
+	// Раніше повернення/переказ дублювались іще й тут.
 	if newStatus == "completed" {
-		u.repo.TransferFrozenToMaster(ctx, deal.InitiatorID, skill.UserID, skill.Price)
+		err = u.repo.CompleteDeal(ctx, dealID)
+	} else {
+		err = u.repo.UpdateDealStatus(ctx, dealID, newStatus, scheduledAt)
 	}
-
-	err = u.repo.UpdateDealStatus(ctx, dealID, newStatus, scheduledAt)
 
 	if err == nil {
 		var msg string
@@ -540,6 +533,20 @@ func (u *userUseCase) UpdateDealStatus(ctx context.Context, dealID, newStatus st
 	}
 
 	return err
+}
+
+// AdminCancelDeal скасовує угоду примусово: на відміну від UpdateDealStatus,
+// підтверджений урок не перетворюється на запит скасування — адміну нема в кого питати.
+func (u *userUseCase) AdminCancelDeal(ctx context.Context, dealID string) error {
+	return u.repo.UpdateDealStatus(ctx, dealID, "cancelled", nil)
+}
+
+func (u *userUseCase) GetDealByID(ctx context.Context, id string) (*domain.Deal, error) {
+	return u.repo.GetDealByID(ctx, id)
+}
+
+func (u *userUseCase) GetSkillByID(ctx context.Context, id string) (*domain.Skill, error) {
+	return u.repo.GetSkillByID(ctx, id)
 }
 
 func (u *userUseCase) GetSystemStats(ctx context.Context) (*domain.SystemStats, error) {

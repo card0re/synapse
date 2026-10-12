@@ -198,11 +198,14 @@ func (r *UserRepo) SetAuthCode(ctx context.Context, telegramID int64, code strin
 }
 
 func (r *UserRepo) VerifyAuthCode(ctx context.Context, code string) (*domain.User, error) {
-	var user domain.User
-	err := r.db.GetContext(ctx, &user, "SELECT * FROM users WHERE auth_code = $1", code)
-	if err != nil {
+	// Коди шестизначні й не протухають, тож два користувачі можуть мати однаковий.
+	// GetContext мовчки взяв би перший рядок — тобто чужий акаунт.
+	var users []domain.User
+	err := r.db.SelectContext(ctx, &users, "SELECT * FROM users WHERE auth_code = $1 LIMIT 2", code)
+	if err != nil || len(users) != 1 {
 		return nil, errors.New("невірний або застарілий код")
 	}
+	user := users[0]
 
 	r.db.ExecContext(ctx, "UPDATE users SET auth_code = NULL WHERE id = $1", user.ID)
 
@@ -328,7 +331,7 @@ func (r *UserRepo) CompleteDeal(ctx context.Context, dealID string) error {
 
 	var initiatorID, receiverID string
 	var price int
-	err = tx.QueryRowxContext(ctx, "SELECT initiator_id, receiver_id, price FROM deals WHERE id = $1 AND status IN ('accepted', 'disputed')").Scan(&initiatorID, &receiverID, &price)
+	err = tx.QueryRowxContext(ctx, "SELECT initiator_id, receiver_id, price FROM deals WHERE id = $1 AND status IN ('accepted', 'disputed')", dealID).Scan(&initiatorID, &receiverID, &price)
 	if err != nil {
 		return errors.New("угода не знайдена або ще не прийнята")
 	}
@@ -472,12 +475,14 @@ func (r *UserRepo) GetIncomingDeals(ctx context.Context, receiverID string) ([]d
 	query := `
 		SELECT 
 			d.id as deal_id, s.title as skill_title,
-			u.username as initiator_name, u.phone_number as initiator_phone,
-			d.status, d.scheduled_at
+			u.username as initiator_name,
+			-- номер телефону — лише коли урок реально відбувається, а не на кожну заявку
+			CASE WHEN d.status IN ('accepted', 'completed') THEN u.phone_number END as initiator_phone,
+			d.status, d.scheduled_at, d.meeting_url
 		FROM deals d
 		JOIN skills s ON d.skill_id = s.id
 		JOIN users u ON d.initiator_id = u.id
-		WHERE d.receiver_id = $1 AND d.status IN ('pending', 'negotiating', 'accepted')
+		WHERE d.receiver_id = $1 AND d.status IN ('pending', 'negotiating', 'accepted', 'cancel_requested', 'disputed')
 		ORDER BY d.created_at DESC
 	`
 	err := r.db.SelectContext(ctx, &deals, query, receiverID)
@@ -489,8 +494,10 @@ func (r *UserRepo) GetOutgoingDeals(ctx context.Context, initiatorID string) ([]
 	query := `
 		SELECT 
 			d.id as deal_id, s.title as skill_title,
-			u.username as master_name, u.phone_number as master_phone, u.id as master_id,
-			d.status, d.scheduled_at
+			u.username as master_name,
+			CASE WHEN d.status IN ('accepted', 'completed') THEN u.phone_number END as master_phone,
+			u.id as master_id,
+			d.status, d.scheduled_at, d.meeting_url
 		FROM deals d
 		JOIN skills s ON d.skill_id = s.id
 		JOIN users u ON d.receiver_id = u.id
@@ -516,7 +523,9 @@ func (r *UserRepo) UpdateDealStatus(ctx context.Context, dealID string, status s
 	}
 
 	if status == "rejected" || status == "cancelled" {
-		if currentStatus == "pending" || currentStatus == "negotiating" || currentStatus == "accepted" || currentStatus == "disputed" {
+		// cancel_requested теж повертає хвилини: саме в цьому статусі майстер
+		// підтверджує скасування, і без нього заморожене зависало назавжди.
+		if currentStatus == "pending" || currentStatus == "negotiating" || currentStatus == "accepted" || currentStatus == "disputed" || currentStatus == "cancel_requested" {
 			_, err = tx.ExecContext(ctx, "UPDATE users SET balance_minutes = balance_minutes + $1, frozen_minutes = frozen_minutes - $1 WHERE id = $2", price, initiatorID)
 			if err != nil {
 				return err
@@ -696,6 +705,9 @@ func (r *UserRepo) AdminDeleteSkill(ctx context.Context, skillID string) error {
 func (r *UserRepo) AdminUpdateSkill(ctx context.Context, skillID string, title string, price int, isActive bool) error {
 	query := `UPDATE skills SET title = $1, price = $2, is_active = $3 WHERE id = $4`
 	_, err := r.db.ExecContext(ctx, query, title, price, isActive, skillID)
+
+	r.clearFeedCache(ctx)
+
 	return err
 }
 
@@ -803,14 +815,16 @@ func (r *UserRepo) GetCities(ctx context.Context) ([]domain.City, error) {
 }
 
 func (r *UserRepo) SaveMessage(ctx context.Context, msg domain.Message) error {
-	query := `INSERT INTO messages (deal_id, sender_id, receiver_id, text) VALUES ($1, $2, $3, $4)`
-	_, err := r.db.ExecContext(ctx, query, msg.DealID, msg.SenderID, msg.ReceiverID, msg.Text)
+	query := `INSERT INTO messages (deal_id, sender_id, receiver_id, text, reply_to_id, reply_to_text)
+	          VALUES ($1, $2, $3, $4, $5, $6)`
+	_, err := r.db.ExecContext(ctx, query, msg.DealID, msg.SenderID, msg.ReceiverID, msg.Text, msg.ReplyToID, msg.ReplyToText)
 	return err
 }
 
 func (r *UserRepo) GetDealMessages(ctx context.Context, dealID string) ([]domain.Message, error) {
 	var msgs []domain.Message
-	query := `SELECT id, deal_id, sender_id, receiver_id, text, created_at FROM messages WHERE deal_id = $1 ORDER BY created_at ASC`
+	query := `SELECT id, deal_id, sender_id, receiver_id, text, is_read, reply_to_id, reply_to_text, created_at
+	          FROM messages WHERE deal_id = $1 ORDER BY created_at ASC`
 	err := r.db.SelectContext(ctx, &msgs, query, dealID)
 	return msgs, err
 }
@@ -818,7 +832,7 @@ func (r *UserRepo) GetDealMessages(ctx context.Context, dealID string) ([]domain
 func (r *UserRepo) GetChatHistory(ctx context.Context, user1, user2 string) ([]domain.Message, error) {
 	var msgs []domain.Message
 	query := `
-		SELECT id, deal_id, sender_id, receiver_id, text, created_at 
+		SELECT id, deal_id, sender_id, receiver_id, text, is_read, reply_to_id, reply_to_text, created_at
 		FROM messages 
 		WHERE (sender_id = $1 AND receiver_id = $2) 
 		   OR (sender_id = $2 AND receiver_id = $1)
@@ -1061,7 +1075,9 @@ func (r *UserRepo) GetLeaderboard(ctx context.Context) ([]domain.LeaderboardUser
 			(SELECT count(*) FROM reviews WHERE target_id = u.id) as reviews_count,
 			(SELECT count(*) FROM deals WHERE receiver_id = u.id AND status = 'completed') as completed_deals
 		FROM users u
-		WHERE u.rating > 0 OR (SELECT count(*) FROM deals WHERE receiver_id = u.id AND status = 'completed') > 0
+		-- без відгуків рейтинг — це дефолтні 5.00 при реєстрації, і вони
+		-- витісняли з топу тих, у кого є реальні оцінки
+		WHERE (SELECT count(*) FROM reviews WHERE target_id = u.id) > 0
 		ORDER BY u.rating DESC, reviews_count DESC, completed_deals DESC
 		LIMIT 10
 	`

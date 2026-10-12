@@ -149,6 +149,9 @@ type UserUseCase interface {
 	CreateReport(ctx context.Context, reporterID, targetType, targetID, reason string, details *string) error
 	GetPendingReports(ctx context.Context) ([]Report, error)
 	ResolveReport(ctx context.Context, reportID string, status string) error
+	AdminCancelDeal(ctx context.Context, dealID string) error
+	GetDealByID(ctx context.Context, id string) (*Deal, error)
+	GetSkillByID(ctx context.Context, id string) (*Skill, error)
 	ModerateMessage(ctx context.Context, text string) string
 	SendTelegramMessage(ctx context.Context, userID string, message string) error // Додаємо
 	CheckUpcomingLessons(ctx context.Context) error
