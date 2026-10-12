@@ -37,13 +37,30 @@ func main() {
 	defer db.Close()
 	log.Println("✅ БД успішно підключена")
 
-	// ponytail: колонки users.auth_code/telegram_link_token колись додавались вручну на старому
-	// сервері й не потрапили в дамп при переїзді на Cloud SQL — довели схему до ладу на старті.
-	if _, err := db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_code VARCHAR(6)`); err != nil {
-		log.Printf("⚠️ Не вдалося перевірити колонку auth_code: %v", err)
-	}
-	if _, err := db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_token VARCHAR(64)`); err != nil {
-		log.Printf("⚠️ Не вдалося перевірити колонку telegram_link_token: %v", err)
+	// ponytail: схема в проді збиралась руками й розійшлася з тим, що очікує код.
+	// Міграції на Cloud Run не ганяються, тому доводимо її до ладу на старті —
+	// усе ідемпотентне, повторний запуск нічого не змінює. Ті самі зміни
+	// лежать у migrations/ для чистої бази.
+	for _, stmt := range []string{
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_code VARCHAR(6)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_token VARCHAR(64)`,
+		// без цієї колонки кнопка бана в адмінці завжди відповідала помилкою
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE`,
+		// дефолт у базі був 240 хвилин, хоча обіцяємо скрізь 120
+		`ALTER TABLE users ALTER COLUMN balance_minutes SET DEFAULT 120`,
+		// цитати в чаті нікуди не зберігались
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_id INTEGER`,
+		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_text TEXT`,
+		// CreateReview робить ON CONFLICT (deal_id) — без цього індексу
+		// Postgres відповідає 42P10 і жоден відгук не зберігається
+		`CREATE UNIQUE INDEX IF NOT EXISTS reviews_deal_id_key ON reviews (deal_id)`,
+		// реєстрація розраховує на помилку бази при повторній пошті,
+		// а два акаунти з однією поштою означають вхід у випадковий з них
+		`CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email)`,
+	} {
+		if _, err := db.Exec(stmt); err != nil {
+			log.Printf("⚠️ Схема: не вдалося виконати %q: %v", stmt, err)
+		}
 	}
 
 	// Реєстрація через пошту писала пароль у password_hash як є, без bcrypt,
