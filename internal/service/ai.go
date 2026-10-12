@@ -23,6 +23,15 @@ func NewAIService() AIService {
 	return &aiService{}
 }
 
+// modelName — назва моделі Gemini. Модель змінюється частіше за код, а помилковий
+// ідентифікатор не видно ніде, крім логів, тож тримаємо її в змінній оточення.
+func modelName(envKey, fallback string) string {
+	if v := os.Getenv(envKey); v != "" {
+		return v
+	}
+	return fallback
+}
+
 func (s *aiService) ModerateSkill(ctx context.Context, title, description string) (bool, string) {
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
@@ -35,7 +44,7 @@ func (s *aiService) ModerateSkill(ctx context.Context, title, description string
 	}
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-3.5-flash")
+	model := client.GenerativeModel(modelName("GEMINI_MODEL", "gemini-3.5-flash"))
 	model.SafetySettings = []*genai.SafetySetting{
 		{Category: genai.HarmCategoryDangerousContent, Threshold: genai.HarmBlockNone},
 		{Category: genai.HarmCategoryHarassment, Threshold: genai.HarmBlockNone},
@@ -52,7 +61,10 @@ func (s *aiService) ModerateSkill(ctx context.Context, title, description string
 	prompt := fmt.Sprintf("Назва: %s\nОпис: %s", title, description)
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
-		return false, "Підозра на заборонений контент"
+		// Недоступний ШІ — не привід видаляти оголошення користувача: раніше будь-яка
+		// помилка API (квота, таймаут, мережа) означала видалення щойно створеної навички.
+		log.Printf("⚠️ Модерація недоступна, пропускаємо оголошення: %v", err)
+		return true, ""
 	}
 
 	if len(resp.Candidates) > 0 {
@@ -88,7 +100,7 @@ func (s *aiService) GetSmartMatches(ctx context.Context, userBio string, allSkil
 	}
 	defer client.Close()
 
-	model := client.GenerativeModel("gemini-3.1-flash-lite")
+	model := client.GenerativeModel(modelName("GEMINI_MATCH_MODEL", "gemini-3.1-flash-lite"))
 	model.ResponseMIMEType = "application/json"
 
 	prompt := fmt.Sprintf(`

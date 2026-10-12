@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mime"
 	"net/smtp"
 	"os"
 	"time"
@@ -65,7 +66,10 @@ func (s *emailService) send(job EmailPayload) error {
 
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
-	msg := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", job.To, job.Subject, job.Body))
+	// Без MIME-заголовків кирилична тема й текст приїжджають абракадаброю.
+	msg := []byte(fmt.Sprintf(
+		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
+		from, job.To, mime.QEncoding.Encode("UTF-8", job.Subject), job.Body))
 
 	return smtp.SendMail(smtpHost+":"+smtpPort, auth, from, []string{job.To}, msg)
 }
