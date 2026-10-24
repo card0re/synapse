@@ -39,6 +39,19 @@ server {
         add_header X-Content-Type-Options "nosniff" always;
     }
 
+    # index.html не має кешуватись: імені без хеша, а всередині — посилання на
+    # поточний бандл. Без явного заголовка браузер кешує оболонку евристично і
+    # після деплою просить уже видалений /assets/index-<старий хеш>.js — білий
+    # екран. Заголовки дублюються з тієї ж причини, що й у /assets/.
+    location = /index.html {
+        add_header Cache-Control "no-cache";
+        add_header X-Robots-Tag $robots_tag always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    }
+
     # SPA-фолбек віддавав 200 навіть на /.env та /.git/config — сканери
     # трактують це як "знайдено". Віддаємо 404, як і має бути.
     location ~ /\.(?!well-known) {
