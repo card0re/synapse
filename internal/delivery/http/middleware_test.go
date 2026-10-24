@@ -1,11 +1,14 @@
 package http
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/card0re/synapse/internal/domain"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -34,15 +37,20 @@ func TestUserOwnershipMiddleware(t *testing.T) {
 		requestURL string
 		tokenUser  string
 		role       string
+		email      string
 		want       int
 	}{
-		{"власник проходить", "id", "/users/:id", "/users/u-1", "u-1", "user", http.StatusOK},
-		{"чужий акаунт — 403", "id", "/users/:id", "/users/u-2", "u-1", "user", http.StatusForbidden},
-		{"адмін проходить скрізь", "id", "/users/:id", "/users/u-2", "u-1", "admin", http.StatusOK},
-		{"параметр :userId теж охороняється", "userId", "/users/profile/:userId", "/users/profile/u-2", "u-1", "user", http.StatusForbidden},
-		{"параметр :user_id теж охороняється", "user_id", "/deals/incoming/:user_id", "/deals/incoming/u-2", "u-1", "user", http.StatusForbidden},
-		{"невідомий параметр не відкриває доступ", "nope", "/users/:id", "/users/u-1", "u-1", "user", http.StatusForbidden},
+		{"власник проходить", "id", "/users/:id", "/users/u-1", "u-1", "user", "", http.StatusOK},
+		{"чужий акаунт — 403", "id", "/users/:id", "/users/u-2", "u-1", "user", "", http.StatusForbidden},
+		// адміном робить пошта, а не роль: роль без неї обходу не дає
+		{"адмін проходить скрізь", "id", "/users/:id", "/users/u-2", "u-1", "admin", "owner@example.com", http.StatusOK},
+		{"роль admin без пошти — 403", "id", "/users/:id", "/users/u-2", "u-1", "admin", "", http.StatusForbidden},
+		{"параметр :userId теж охороняється", "userId", "/users/profile/:userId", "/users/profile/u-2", "u-1", "user", "", http.StatusForbidden},
+		{"параметр :user_id теж охороняється", "user_id", "/deals/incoming/:user_id", "/deals/incoming/u-2", "u-1", "user", "", http.StatusForbidden},
+		{"невідомий параметр не відкриває доступ", "nope", "/users/:id", "/users/u-1", "u-1", "user", "", http.StatusForbidden},
 	}
+
+	t.Setenv("ADMIN_EMAIL", "owner@example.com")
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -50,6 +58,7 @@ func TestUserOwnershipMiddleware(t *testing.T) {
 			r.GET(tc.route, func(c *gin.Context) {
 				c.Set("userId", tc.tokenUser)
 				c.Set("userRole", tc.role)
+				c.Set("userEmail", tc.email)
 				c.Next()
 			}, UserOwnershipMiddleware(tc.param), func(c *gin.Context) {
 				c.Status(http.StatusOK)
@@ -102,27 +111,91 @@ func TestAuthMiddlewareRejectsBadTokens(t *testing.T) {
 	}
 }
 
-// AdminMiddleware — друга, незалежна перевірка ролі перед адмінськими ручками.
-func TestAdminMiddlewareRequiresAdminRole(t *testing.T) {
+type adminStub struct {
+	domain.UserUseCase
+	user *domain.User
+}
+
+func (s adminStub) GetUserByID(context.Context, string) (*domain.User, error) {
+	if s.user == nil {
+		return nil, errors.New("немає такого користувача")
+	}
+	return s.user, nil
+}
+
+// Адміністратор рівно один, і визначає його пошта. Роль у токені сама по собі
+// більше нічого не відкриває: інакше адмінку діставав би кожен, кому колонку
+// users.role виставив інший адмін або хто дописав її прямо в базі.
+func TestRequireAdminBindsToOneEmail(t *testing.T) {
 	t.Setenv("JWT_SECRET_KEY", testSecret)
+	t.Setenv("ADMIN_EMAIL", "owner@example.com")
+	exp := time.Now().Add(time.Hour).Unix()
+
+	dbUser := func(email string, banned bool) *domain.User {
+		return &domain.User{ID: "u-1", Email: &email, IsBanned: banned}
+	}
+	adminClaims := func() jwt.MapClaims {
+		return jwt.MapClaims{"user_id": "u-1", "role": "admin", "email": "owner@example.com", "exp": exp}
+	}
+
+	for _, tc := range []struct {
+		name   string
+		claims jwt.MapClaims
+		user   *domain.User
+		want   int
+	}{
+		{"звичайний користувач", jwt.MapClaims{"user_id": "u-1", "role": "user", "exp": exp}, dbUser("owner@example.com", false), http.StatusForbidden},
+		{"старий токен: роль є, пошти немає", jwt.MapClaims{"user_id": "u-1", "role": "admin", "exp": exp}, dbUser("owner@example.com", false), http.StatusForbidden},
+		{"чужа пошта в токені", jwt.MapClaims{"user_id": "u-1", "role": "admin", "email": "someone@example.com", "exp": exp}, dbUser("someone@example.com", false), http.StatusForbidden},
+		{"у базі вже інша пошта", adminClaims(), dbUser("someone@example.com", false), http.StatusForbidden},
+		{"акаунт без пошти", adminClaims(), &domain.User{ID: "u-1"}, http.StatusForbidden},
+		{"користувача не знайдено", adminClaims(), nil, http.StatusForbidden},
+		{"адміна забанено", adminClaims(), dbUser("owner@example.com", true), http.StatusForbidden},
+		{"справжній адмін", adminClaims(), dbUser("owner@example.com", false), http.StatusOK},
+		{"пошта в іншому регістрі", jwt.MapClaims{"user_id": "u-1", "role": "admin", "email": "Owner@Example.com", "exp": exp}, dbUser("OWNER@example.com", false), http.StatusOK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := NewHandler(adminStub{user: tc.user})
+
+			r := gin.New()
+			r.GET("/a", AuthMiddleware(), h.RequireAdmin(), func(c *gin.Context) { c.Status(http.StatusOK) })
+			req := httptest.NewRequest(http.MethodGet, "/a", nil)
+			req.Header.Set("Authorization", "Bearer "+sign(t, jwt.SigningMethodHS256, []byte(testSecret), tc.claims))
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			if w.Code != tc.want {
+				t.Errorf("отримано %d, очікувалось %d", w.Code, tc.want)
+			}
+		})
+	}
+}
+
+// Адмін обходить перевірку власника акаунта, тож роль без пошти не повинна
+// давати і цього обходу — інакше старий токен так і редагував би чужі профілі.
+func TestOwnershipBypassNeedsTheAdminEmail(t *testing.T) {
+	t.Setenv("JWT_SECRET_KEY", testSecret)
+	t.Setenv("ADMIN_EMAIL", "owner@example.com")
 	exp := time.Now().Add(time.Hour).Unix()
 
 	for _, tc := range []struct {
-		role string
-		want int
-	}{{"admin", http.StatusOK}, {"user", http.StatusForbidden}} {
-		t.Run(tc.role, func(t *testing.T) {
-			tok := sign(t, jwt.SigningMethodHS256, []byte(testSecret),
-				jwt.MapClaims{"user_id": "u-1", "role": tc.role, "exp": exp})
-
+		name   string
+		claims jwt.MapClaims
+		want   int
+	}{
+		{"роль без пошти", jwt.MapClaims{"user_id": "me", "role": "admin", "exp": exp}, http.StatusForbidden},
+		{"роль і пошта адміна", jwt.MapClaims{"user_id": "me", "role": "admin", "email": "owner@example.com", "exp": exp}, http.StatusOK},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			r := gin.New()
-			r.GET("/a", AdminMiddleware(), func(c *gin.Context) { c.Status(http.StatusOK) })
-			req := httptest.NewRequest(http.MethodGet, "/a", nil)
-			req.Header.Set("Authorization", "Bearer "+tok)
+			r.GET("/u/:id", AuthMiddleware(), UserOwnershipMiddleware("id"), func(c *gin.Context) { c.Status(http.StatusOK) })
+			req := httptest.NewRequest(http.MethodGet, "/u/stranger", nil)
+			req.Header.Set("Authorization", "Bearer "+sign(t, jwt.SigningMethodHS256, []byte(testSecret), tc.claims))
 			w := httptest.NewRecorder()
 			r.ServeHTTP(w, req)
+
 			if w.Code != tc.want {
-				t.Errorf("роль %s: отримано %d, очікувалось %d", tc.role, w.Code, tc.want)
+				t.Errorf("отримано %d, очікувалось %d", w.Code, tc.want)
 			}
 		})
 	}

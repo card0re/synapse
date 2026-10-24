@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/card0re/synapse/internal/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -47,62 +48,36 @@ func AllowedOrigins() []string {
 	return origins
 }
 
-func AdminMiddleware() gin.HandlerFunc {
+// RequireAdmin — два незалежні бар'єри перед адмінкою.
+//
+// Перший: токен має нести і роль, і пошту єдиного адміна. Він дешевий і
+// відсікає всіх звичайних користувачів, не торкаючись бази.
+//
+// Другий: пошта перечитується з бази просто зараз. Клейм живе 72 години, і без
+// цього кроку адміном лишався б той, у кого адреса була на момент входу, навіть
+// якщо її вже змінили. Адмінських запитів одиниці, тож зайвий SELECT тут
+// нічого не коштує.
+func (h *Handler) RequireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Доступ заборонено: немає токена"})
-			c.Abort()
-			return
-		}
-
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Неправильний формат токена"})
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
-
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method")
-			}
-			return getJWTSecret(), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Недійсний або прострочений токен"})
-			c.Abort()
-			return
-		}
-
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Помилка читання даних токена"})
-			c.Abort()
-			return
-		}
-
-		role, ok := claims["role"].(string)
-		if !ok || role != "admin" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ заборонено: тільки для адміністраторів"})
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func (h *Handler) AdminIdentity() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userRole, exists := c.Get("userRole")
-		if !exists || userRole != "admin" {
+		deny := func() {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Доступ заборонено: тільки для адміністраторів"})
+		}
+
+		if !isAdmin(c) {
+			deny()
 			return
 		}
+
+		user, err := h.userUC.GetUserByID(c.Request.Context(), currentUserID(c))
+		if err != nil || user == nil || user.Email == nil || !auth.IsAdminEmail(*user.Email) {
+			deny()
+			return
+		}
+		if user.IsBanned {
+			deny()
+			return
+		}
+
 		c.Next()
 	}
 }
@@ -142,6 +117,9 @@ func AuthMiddleware() gin.HandlerFunc {
 		if ok {
 			c.Set("userId", claims["user_id"])
 			c.Set("userRole", claims["role"])
+			// Пошта є в токені лише в єдиного адміна — isAdmin звіряє обидва
+			// клейми, щоб самої ролі для адмінських обходів не вистачало.
+			c.Set("userEmail", claims["email"])
 		}
 
 		c.Next()
@@ -172,7 +150,7 @@ func UserOwnershipMiddleware(param string) gin.HandlerFunc {
 		tokenUserID := fmt.Sprintf("%v", tokenUserIDVal)
 
 		// Якщо користувач не є адміном І його ID не збігається з ID в URL
-		if reqUserID != tokenUserID && c.GetString("userRole") != "admin" {
+		if reqUserID != tokenUserID && !isAdmin(c) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ заборонено: ви не можете керувати чужим акаунтом"})
 			c.Abort()
 			return

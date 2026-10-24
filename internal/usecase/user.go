@@ -223,7 +223,10 @@ func (u *userUseCase) GoogleLogin(ctx context.Context, googleToken string) (stri
 		user.AvatarURL = &googleData.Picture
 	}
 
-	token, err := auth.GenerateToken(user.ID, user.Role)
+	// Єдиний вхід, який передає пошту далі: саме тут її підтвердив Google —
+	// вище звірено aud і email_verified. Тільки звідси можна отримати адмінку.
+	token, err := auth.GenerateToken(user.ID, googleData.Email)
+	user.Role = auth.EffectiveRole(googleData.Email)
 	return token, user, err
 }
 

@@ -11,7 +11,9 @@ func TestGenerateTokenRoundTrip(t *testing.T) {
 	const secret = "test-secret-not-used-anywhere-real"
 	t.Setenv("JWT_SECRET_KEY", secret)
 
-	tokenString, err := GenerateToken("u-1", "admin")
+	t.Setenv("ADMIN_EMAIL", "owner@example.com")
+
+	tokenString, err := GenerateToken("u-1", "owner@example.com")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,7 +24,7 @@ func TestGenerateTokenRoundTrip(t *testing.T) {
 	}
 
 	claims := tok.Claims.(jwt.MapClaims)
-	if claims["user_id"] != "u-1" || claims["role"] != "admin" {
+	if claims["user_id"] != "u-1" || claims["role"] != "admin" || claims["email"] != "owner@example.com" {
 		t.Errorf("claims поїхали: %v", claims)
 	}
 	if exp, _ := claims.GetExpirationTime(); exp == nil || time.Until(exp.Time) <= 0 {

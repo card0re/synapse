@@ -136,15 +136,33 @@ export default function Admin() {
         });
     }
 
-    const toggleBan = (id: string) => { confirmAction("Змінити статус блокування?", async () => { await fetch(`${API_URL}/admin/users/${id}/ban`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } }); loadData() }) }
-    const cancelDeal = (id: string) => { confirmAction("Примусово скасувати угоду?", async () => { await fetch(`${API_URL}/admin/deals/${id}/cancel`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Угоду скасовано"); loadData() }) }
-    const deleteSkill = (id: string) => { confirmAction("Видалити це оголошення назавжди?", async () => { await fetch(`${API_URL}/admin/skills/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Оголошення видалено"); loadData() }) }
-    const deleteNews = (id: number) => { confirmAction("Видалити новину?", async () => { await fetch(`${API_URL}/admin/news/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } }); toast.success("Новину видалено"); loadData() }) }
+    const toggleBan = (id: string) => { confirmAction("Змінити статус блокування?", async () => {
+        const res = await fetch(`${API_URL}/admin/users/${id}/ban`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } })
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || "Не вдалося змінити блокування"); return }
+        toast.success("Статус блокування змінено"); loadData()
+    }) }
+    const cancelDeal = (id: string) => { confirmAction("Примусово скасувати угоду?", async () => {
+        const res = await fetch(`${API_URL}/admin/deals/${id}/cancel`, { method: "PUT", headers: { "Authorization": `Bearer ${token}` } })
+        // бекенд відмовляє, напр. для вже закритої угоди — показуємо його причину, а не загальне "Помилка"
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || "Не вдалося скасувати угоду"); return }
+        toast.success("Угоду скасовано"); loadData()
+    }) }
+    const deleteSkill = (id: string) => { confirmAction("Видалити це оголошення назавжди?", async () => {
+        const res = await fetch(`${API_URL}/admin/skills/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } })
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || "Не вдалося видалити оголошення"); return }
+        toast.success("Оголошення видалено"); loadData()
+    }) }
+    const deleteNews = (id: number) => { confirmAction("Видалити новину?", async () => {
+        const res = await fetch(`${API_URL}/admin/news/${id}`, { method: "DELETE", headers: { "Authorization": `Bearer ${token}` } })
+        if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || "Не вдалося видалити новину"); return }
+        toast.success("Новину видалено"); loadData()
+    }) }
 
     const handleCreateNews = async (e: React.FormEvent) => {
         e.preventDefault()
         const res = await fetch(`${API_URL}/admin/news`, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ title: newsTitle, content: newsContent }) })
         if (res.ok) { toast.success("Новину опубліковано!"); setNewsTitle(""); setNewsContent(""); loadData() }
+        else { const d = await res.json().catch(() => ({})); toast.error(d.error || "Не вдалося опублікувати новину") }
     }
 
     if (loading) return <div className="p-10 text-center font-bold text-slate-500">Завантаження системних даних...</div>
@@ -168,11 +186,11 @@ export default function Admin() {
                                     <div><Label>Баланс (хв)</Label><Input type="number" value={editingUser.balance_minutes} onChange={e => setEditingUser({...editingUser, balance_minutes: Number(e.target.value)})} className="dark:bg-slate-800 dark:text-white dark:border-slate-700"/></div>
                                     <div><Label>Рейтинг</Label><Input type="number" step="0.1" value={editingUser.rating || 5} onChange={e => setEditingUser({...editingUser, rating: Number(e.target.value)})} className="dark:bg-slate-800 dark:text-white dark:border-slate-700"/></div>
                                 </div>
-                                <div>
-                                    <Label>Роль</Label>
-                                    <select value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})} className="w-full p-2 rounded-md border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
-                                        <option value="user">User</option><option value="admin">Admin</option>
-                                    </select>
+                                {/* Вибір ролі прибрано: адміністратор у системі один і
+                                    визначається поштою на сервері, тож перемикач нічого
+                                    не давав — лише обіцяв доступ, якого не буде. */}
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Адміністратор один і задається поштою на сервері — роль тут не змінюється.
                                 </div>
                                 <div className="flex gap-2 pt-4">
                                     <Button type="button" variant="outline" className="flex-1 dark:border-slate-700 dark:text-white" onClick={() => setEditingUser(null)}>Скасувати</Button>

@@ -37,7 +37,26 @@ func currentUserID(c *gin.Context) string {
 	return s
 }
 
-func isAdmin(c *gin.Context) bool { return c.GetString("userRole") == "admin" }
+// isAdmin вимагає обидва клейми: роль і підтверджену пошту єдиного адміна.
+// Самої ролі замало — токени, видані за старим правилом (колонка users.role),
+// пошти не несуть, і адмінських обходів більше не дають.
+func isAdmin(c *gin.Context) bool {
+	return c.GetString("userRole") == "admin" && auth.IsAdminEmail(c.GetString("userEmail"))
+}
+
+// issueToken — єдине місце, де вхід віддає токен. Роль у відповіді виводиться
+// з тієї ж пошти, що й у токені, інакше фронт показував би адмінку тому, кому
+// жодна адмінська ручка все одно не відповість. verifiedEmail непорожній лише
+// у Google-вході: тільки там адресу підтвердив провайдер.
+func issueToken(c *gin.Context, user *domain.User, verifiedEmail string) (string, bool) {
+	token, err := auth.GenerateToken(user.ID, verifiedEmail)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка генерації ключа"})
+		return "", false
+	}
+	user.Role = auth.EffectiveRole(verifiedEmail)
+	return token, true
+}
 
 type loginInput struct {
 	Code string `json:"code" binding:"required"`
@@ -204,7 +223,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 
 			// 4. АДМІНСЬКІ МАРШРУТИ
 			admin := protected.Group("/admin")
-			admin.Use(AdminMiddleware())
+			admin.Use(h.RequireAdmin())
 			{
 				admin.POST("/news", h.CreateNews)
 				admin.DELETE("/news/:id", h.DeleteNews)
@@ -253,9 +272,8 @@ func (h *Handler) loginUser(c *gin.Context) {
 	}
 
 	//JWT
-	token, err := auth.GenerateToken(user.ID, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка генерації ключа"})
+	token, ok := issueToken(c, user, "")
+	if !ok {
 		return
 	}
 
@@ -487,9 +505,8 @@ func (h *Handler) loginWithEmail(c *gin.Context) {
 		return
 	}
 
-	token, err := auth.GenerateToken(user.ID, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка генерации токена"})
+	token, ok := issueToken(c, user, "")
+	if !ok {
 		return
 	}
 
@@ -696,9 +713,8 @@ func (h *Handler) registerEmail(c *gin.Context) {
 		return
 	}
 
-	token, err := auth.GenerateToken(user.ID, user.Role)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка генерації токена"})
+	token, ok := issueToken(c, user, "")
+	if !ok {
 		return
 	}
 

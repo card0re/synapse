@@ -663,11 +663,13 @@ func (r *UserRepo) GetAllUsers(ctx context.Context) ([]domain.User, error) {
 	var users []domain.User
 
 	query := `
-		SELECT 
-			id, telegram_id, username, phone_number, email, 
-			balance_minutes, frozen_minutes, rating, role, 
-			is_banned, created_at 
-		FROM users 
+		-- COALESCE на username: колонка nullable, а поле в домені — звичайний
+		-- string, тож один NULL валив би весь список користувачів у адмінці
+		SELECT
+			id, telegram_id, COALESCE(username, '—') as username, phone_number, email,
+			balance_minutes, frozen_minutes, rating, role,
+			is_banned, created_at
+		FROM users
 		ORDER BY created_at DESC
 	`
 
@@ -678,14 +680,18 @@ func (r *UserRepo) GetAllUsers(ctx context.Context) ([]domain.User, error) {
 func (r *UserRepo) GetAllDealsAdmin(ctx context.Context) ([]domain.AdminDeal, error) {
 	var deals []domain.AdminDeal
 	query := `
-		SELECT 
-			d.id as deal_id, s.title as skill_title,
-			u_init.username as initiator_name, u_recv.username as master_name,
+		-- LEFT JOIN, а не JOIN: на deals немає зовнішніх ключів, тож угода з
+		-- видаленою навичкою просто зникала зі списку. Найгірше це для спорів —
+		-- вкладка арбітражу фільтрує цей самий список, і невидиму угоду вже
+		-- нічим не закрити, а хвилини учня лишаються замороженими назавжди.
+		SELECT
+			d.id as deal_id, COALESCE(s.title, 'Навичку видалено') as skill_title,
+			COALESCE(u_init.username, '—') as initiator_name, COALESCE(u_recv.username, '—') as master_name,
 			d.status, d.price
 		FROM deals d
-		JOIN skills s ON d.skill_id = s.id
-		JOIN users u_init ON d.initiator_id = u_init.id
-		JOIN users u_recv ON d.receiver_id = u_recv.id
+		LEFT JOIN skills s ON d.skill_id = s.id
+		LEFT JOIN users u_init ON d.initiator_id = u_init.id
+		LEFT JOIN users u_recv ON d.receiver_id = u_recv.id
 		ORDER BY d.created_at DESC
 	`
 	err := r.db.SelectContext(ctx, &deals, query)
@@ -711,9 +717,11 @@ func (r *UserRepo) GetUserReviews(ctx context.Context, userID string) ([]domain.
 func (r *UserRepo) GetAllSkillsAdmin(ctx context.Context) ([]domain.AdminSkill, error) {
 	var skills []domain.AdminSkill
 	query := `
-		SELECT s.id, u.username, s.title, s.type, s.price, s.is_active 
-		FROM skills s 
-		JOIN users u ON s.user_id = u.id 
+		-- username у базі nullable, а сканується у звичайний string: один NULL
+		-- і вкладка навичок у адмінці відкривається порожньою без пояснень
+		SELECT s.id, COALESCE(u.username, '—') as username, s.title, s.type, s.price, s.is_active
+		FROM skills s
+		JOIN users u ON s.user_id = u.id
 		ORDER BY s.created_at DESC`
 	err := r.db.SelectContext(ctx, &skills, query)
 	return skills, err
@@ -1082,7 +1090,9 @@ func (r *UserRepo) GetSystemStats(ctx context.Context) (*domain.SystemStats, err
 	query := `
 		SELECT 
 			(SELECT COUNT(*) FROM users) as total_users,
-			(SELECT COUNT(*) FROM skills) as total_skills,
+			-- підпис на дашборді каже «Активні навички», тож і рахуємо активні:
+			-- без WHERE сюди потрапляли вимкнені й видалені модерацією оголошення
+			(SELECT COUNT(*) FROM skills WHERE is_active) as total_skills,
 			(SELECT COUNT(*) FROM deals) as total_deals,
 			(SELECT COUNT(*) FROM deals WHERE status = 'completed') as completed_deals,
 			COALESCE((SELECT SUM(balance_minutes) FROM users), 0) as total_circulating,
@@ -1212,13 +1222,17 @@ func (r *UserRepo) GetPendingReports(ctx context.Context) ([]domain.Report, erro
 		-- Без приведення взагалі запит падав завжди: uuid = varchar і
 		-- integer = varchar операторів немає, тобто скарги в адмінці не
 		-- відкривались жодного разу.
-		SELECT r.*, u.username as reporter_name,
-		CASE
+		-- COALESCE зовні CASE обов'язковий: на скаргу про вже видалену навичку
+		-- (адмінка сама дає таку кнопку, а зовнішнього ключа в reports немає)
+		-- підзапит повертає NULL, і сканування в string валить увесь список —
+		-- вкладка скарг після цього назавжди показує «немає нових скарг».
+		SELECT r.*, COALESCE(u.username, 'Видалений користувач') as reporter_name,
+		COALESCE(CASE
 			WHEN r.target_type = 'user' THEN (SELECT username FROM users WHERE id::text = r.target_id)
 			WHEN r.target_type = 'skill' THEN (SELECT title FROM skills WHERE id::text = r.target_id)
 			WHEN r.target_type = 'deal' THEN (SELECT 'Угода ' || id FROM deals WHERE id::text = r.target_id)
 			ELSE 'Невідомо'
-		END as target_info
+		END, 'Видалено') as target_info
 		FROM reports r
 		JOIN users u ON r.reporter_id = u.id
 		WHERE r.status = 'pending'
