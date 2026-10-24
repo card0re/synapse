@@ -41,7 +41,7 @@ export default function Leaderboard() {
                     className="flex items-center gap-4 bg-gradient-to-r from-amber-500 to-orange-500 p-6 rounded-3xl shadow-lg text-white">
                     <Trophy size={48} className="drop-shadow-md"/>
                     <div>
-                        <h1 className="text-3xl font-black tracking-tight">Топ-10 Ірпеня</h1>
+                        <h1 className="text-3xl font-black tracking-tight">Топ-10 учасників</h1>
                         <p className="text-amber-100 font-medium">Найактивніші та найповажніші майстри платформи</p>
                     </div>
                 </div>
@@ -81,7 +81,9 @@ export default function Leaderboard() {
                         )
                     })}
                     {leaders.length === 0 &&
-                        <div className="text-center p-10 text-slate-500">Поки що немає лідерів</div>}
+                        <div className="text-center p-10 text-slate-500">
+                            Поки що немає лідерів — рейтинг з'явиться після перших відгуків про уроки
+                        </div>}
                 </div>
             </div>
         </div>
