@@ -114,18 +114,21 @@ func (h *Handler) WebSocketChat(c *gin.Context) {
 			action = "send"
 		}
 
+		receiverID, _ := incoming["receiver_id"].(string)
+
+		// Блокування діє на ВСІ дії, а не лише на send: раніше перевірки стояли
+		// в гілці send, тож заблокований усе одно підмінював текст і ліпив
+		// реакції в чаті жертви через edit/reaction.
+		if h.userUC.IsBlockedBy(context.Background(), userID, receiverID) {
+			conn.WriteJSON(map[string]interface{}{"type": "error", "text": "🚫 Неможливо надіслати. Користувач вас заблокував."})
+			continue
+		}
+		if h.userUC.IsBlockedBy(context.Background(), receiverID, userID) {
+			conn.WriteJSON(map[string]interface{}{"type": "error", "text": "🚫 Ви заблокували цього користувача. Розблокуйте, щоб писати."})
+			continue
+		}
+
 		if action == "send" {
-			receiverID, _ := incoming["receiver_id"].(string)
-
-			if h.userUC.IsBlockedBy(context.Background(), userID, receiverID) {
-				conn.WriteJSON(map[string]interface{}{"type": "error", "text": "🚫 Неможливо надіслати. Користувач вас заблокував."})
-				continue
-			}
-			if h.userUC.IsBlockedBy(context.Background(), receiverID, userID) {
-				conn.WriteJSON(map[string]interface{}{"type": "error", "text": "🚫 Ви заблокували цього користувача. Розблокуйте, щоб писати."})
-				continue
-			}
-
 			rateLimiter.Lock()
 			lastTime := rateLimiter.lastMessage[userID]
 			if time.Since(lastTime) < time.Second {
@@ -170,24 +173,23 @@ func (h *Handler) WebSocketChat(c *gin.Context) {
 		} else if action == "edit" {
 			msgID, _ := incoming["id"].(float64)
 			newText, _ := incoming["text"].(string)
-			receiverID, _ := incoming["receiver_id"].(string)
 
-			response := map[string]interface{}{"type": "edit_message", "id": msgID, "text": newText}
+			// sender_id — автентифікований відправник, не з тіла: фронт застосовує
+			// edit/reaction лише від співрозмовника у відкритому чаті, тож чужий
+			// більше не перепише повідомлення у вікні жертви.
+			response := map[string]interface{}{"type": "edit_message", "id": msgID, "text": newText, "sender_id": userID}
 			broadcastToUser(receiverID, response)
 			broadcastToUser(userID, response)
 
 		} else if action == "reaction" {
 			msgID, _ := incoming["id"].(float64)
-			receiverID, _ := incoming["receiver_id"].(string)
 			reaction, _ := incoming["reaction"].(string)
 
-			response := map[string]interface{}{"type": "reaction_message", "id": msgID, "reaction": reaction}
+			response := map[string]interface{}{"type": "reaction_message", "id": msgID, "reaction": reaction, "sender_id": userID}
 			broadcastToUser(receiverID, response)
 			broadcastToUser(userID, response)
 
 		} else if action == "typing" {
-			receiverID, _ := incoming["receiver_id"].(string)
-
 			response := map[string]interface{}{"type": "typing", "sender_id": userID}
 			broadcastToUser(receiverID, response)
 		}

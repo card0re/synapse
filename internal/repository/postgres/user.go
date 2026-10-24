@@ -179,7 +179,8 @@ func (r *UserRepo) GetAllFeed(ctx context.Context, searchQuery, filterType, city
 }
 
 func (r *UserRepo) SetAuthCode(ctx context.Context, telegramID int64, code string) error {
-	res, err := r.db.ExecContext(ctx, "UPDATE users SET auth_code = $1 WHERE telegram_id = $2", code, telegramID)
+	// Код живе 10 хвилин: раніше він не протухав, тож на перебір був необмежений час.
+	res, err := r.db.ExecContext(ctx, "UPDATE users SET auth_code = $1, auth_code_expires_at = NOW() + interval '10 minutes' WHERE telegram_id = $2", code, telegramID)
 	if err != nil {
 		return err
 	}
@@ -198,10 +199,10 @@ func (r *UserRepo) SetAuthCode(ctx context.Context, telegramID int64, code strin
 }
 
 func (r *UserRepo) VerifyAuthCode(ctx context.Context, code string) (*domain.User, error) {
-	// Коди шестизначні й не протухають, тож два користувачі можуть мати однаковий.
-	// GetContext мовчки взяв би перший рядок — тобто чужий акаунт.
+	// Два користувачі можуть мати однаковий код, тож беремо рівно один збіг
+	// (GetContext мовчки взяв би перший — чужий акаунт). Протухлі коди не рахуються.
 	var users []domain.User
-	err := r.db.SelectContext(ctx, &users, "SELECT * FROM users WHERE auth_code = $1 LIMIT 2", code)
+	err := r.db.SelectContext(ctx, &users, "SELECT * FROM users WHERE auth_code = $1 AND auth_code_expires_at > NOW() LIMIT 2", code)
 	if err != nil || len(users) != 1 {
 		return nil, errors.New("невірний або застарілий код")
 	}

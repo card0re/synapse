@@ -154,7 +154,6 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			authGroup.POST("/login/email", h.loginWithEmail)
 			authGroup.POST("/login/google", h.googleLogin)
 			authGroup.POST("/register/email", h.registerEmail)
-			authGroup.POST("/verify-email/send", h.sendEmailVerification)
 		}
 
 		// Решта публічних маршрутів без лімітів
@@ -178,6 +177,9 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		protected.Use(AuthMiddleware())
 		{
 			protected.GET("/news", h.GetNews)
+			// verify-email/send тепер за авторизацією: відкритий, він слав реальну
+			// пошту з акаунта власника на будь-яку валідну адресу без входу.
+			protected.POST("/users/verify-email/send", h.sendEmailVerification)
 			protected.POST("/users/verify-email/confirm", h.confirmEmailVerification)
 			protected.POST("/reports", h.CreateReport)
 			protected.GET("/feed/matches", h.getMatches)
@@ -358,6 +360,23 @@ func (h *Handler) getFeed(c *gin.Context) {
 	maxPrice := c.Query("max_price")
 	minRating := c.Query("min_rating")
 
+	// Числові фільтри йдуть у типізовані колонки: нечисловий city_id=abc раніше
+	// давав 500 (pgx відхиляв приведення ще до запиту). Відсікаємо на вході 400.
+	for _, v := range []string{cityID, minPrice, maxPrice} {
+		if v != "" {
+			if _, err := strconv.Atoi(v); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Невірний фільтр"})
+				return
+			}
+		}
+	}
+	if minRating != "" {
+		if _, err := strconv.ParseFloat(minRating, 64); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Невірний фільтр"})
+			return
+		}
+	}
+
 	feed, err := h.userUC.GetAllFeed(c.Request.Context(), search, filterType, cityID, minPrice, maxPrice, minRating)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Помилка завантаження стрічки"})
@@ -412,11 +431,13 @@ func (h *Handler) getOutgoingDeals(c *gin.Context) {
 func (h *Handler) UpdateProfile(c *gin.Context) {
 	userID := c.Param("userId")
 
+	// Межі довжини: avatar_url і bio — колонки text без обмеження, а аватар
+	// base64 на 200 КБ дублювався в кожен рядок публічної стрічки і в її кеш.
 	var req struct {
-		Username  *string `json:"username"`
-		Phone     *string `json:"phone_number"`
-		Bio       *string `json:"bio"`
-		AvatarURL *string `json:"avatar_url"`
+		Username  *string `json:"username" binding:"omitempty,max=64"`
+		Phone     *string `json:"phone_number" binding:"omitempty,max=32"`
+		Bio       *string `json:"bio" binding:"omitempty,max=1000"`
+		AvatarURL *string `json:"avatar_url" binding:"omitempty,max=300000"`
 		CityID    *int    `json:"city_id"`
 		BirthDate *string `json:"birth_date"`
 	}

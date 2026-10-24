@@ -136,9 +136,10 @@ type User struct {
 	Email       *string `db:"email" json:"email"`
 	BirthDate   *string `db:"birth_date" json:"birth_date"`
 
-	PasswordHash      *string `db:"password_hash" json:"-"`
-	AuthCode          *string `db:"auth_code" json:"-"`
-	TelegramLinkToken *string `db:"telegram_link_token" json:"-"`
+	PasswordHash      *string    `db:"password_hash" json:"-"`
+	AuthCode          *string    `db:"auth_code" json:"-"`
+	AuthCodeExpiresAt *time.Time `db:"auth_code_expires_at" json:"-"`
+	TelegramLinkToken *string    `db:"telegram_link_token" json:"-"`
 
 	BalanceMinutes  int `db:"balance_minutes" json:"balance_minutes"`
 	FrozenMinutes   int `db:"frozen_minutes" json:"frozen_minutes"`

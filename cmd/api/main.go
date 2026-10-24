@@ -50,6 +50,10 @@ func main() {
 	// лежать у migrations/ для чистої бази.
 	for _, stmt := range []string{
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_code VARCHAR(6)`,
+		// код входу тепер 8-значний і з терміном життя — колонку розширюємо,
+		// а строк протухання додаємо (обидва IF NOT EXISTS / TYPE ідемпотентні)
+		`ALTER TABLE users ALTER COLUMN auth_code TYPE VARCHAR(10)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_code_expires_at TIMESTAMPTZ`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_token VARCHAR(64)`,
 		// без цієї колонки кнопка бана в адмінці завжди відповідала помилкою
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE`,

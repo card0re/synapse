@@ -26,12 +26,16 @@ func NewBot(token string, userUC domain.UserUseCase) (*TelegramBot, error) {
 }
 
 func (b *TelegramBot) sendAuthCode(chatID int64, userID int64) {
-	val, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	// 8 цифр (100 млн), а не 6 (1 млн): лічильник спроб по IP за Cloud Run
+	// обходиться підробкою X-Forwarded-For, тож єдиний надійний заслін від
+	// перебору коду — його ентропія. Разом зі строком життя 10 хв (див. репозиторій)
+	// перебір за вікно нереальний.
+	val, err := rand.Int(rand.Reader, big.NewInt(100000000))
 	if err != nil {
 		log.Printf("Помилка генерації коду: %v", err)
 		return
 	}
-	code := fmt.Sprintf("%06d", val.Int64())
+	code := fmt.Sprintf("%08d", val.Int64())
 
 	err = b.userUC.SetAuthCode(context.Background(), userID, code)
 	if err != nil {

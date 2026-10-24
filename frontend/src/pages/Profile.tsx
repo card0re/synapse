@@ -248,7 +248,7 @@ export default function Profile() {
 
     const sendEmailVerification = async () => {
         const res = await fetch(`${API_URL}/users/verify-email/send`, {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: kycEmail })
+            method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }, body: JSON.stringify({ email: kycEmail })
         });
         if (res.ok) { toast.success("Код відправлено!"); setIsCodeSent(true); }
         else { toast.error("Не вдалося відправити код"); }

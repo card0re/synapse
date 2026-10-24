@@ -154,13 +154,18 @@ export default function Chat() {
             return
         }
 
+        // Застосовуємо edit/reaction лише від співрозмовника у відкритому чаті
+        // (або свої власні). Інакше сторонній по сокету переписував повідомлення
+        // у чужому вікні, вказавши будь-який receiver_id.
         if (data.type === "edit_message") {
-            setMessages(prev => prev.map(m => m.id === data.id ? { ...m, text: data.text, is_edited: true } : m))
+            if (data.sender_id === partnerId || data.sender_id === myId)
+                setMessages(prev => prev.map(m => m.id === data.id ? { ...m, text: data.text, is_edited: true } : m))
             return
         }
 
         if (data.type === "reaction_message") {
-            setMessages(prev => prev.map(m => m.id === data.id ? { ...m, reaction: data.reaction } : m))
+            if (data.sender_id === partnerId || data.sender_id === myId)
+                setMessages(prev => prev.map(m => m.id === data.id ? { ...m, reaction: data.reaction } : m))
             return
         }
 

@@ -38,3 +38,10 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_banned boolean DEFAULT fals
 --    вихідного повідомлення.
 ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS reply_to_id integer;
 ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS reply_to_text text;
+
+-- 6. Код входу з Telegram був 6-значний і не протухав. За Cloud Run лічильник
+--    спроб по IP обходиться підробкою X-Forwarded-For, тож єдиний надійний
+--    заслін від перебору — ентропія коду плюс строк його життя. Розширюємо
+--    колонку під 8 цифр і додаємо час протухання (перевіряється у VerifyAuthCode).
+ALTER TABLE public.users ALTER COLUMN auth_code TYPE varchar(10);
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_code_expires_at timestamptz;
