@@ -19,6 +19,7 @@ func TestPublicViewDropsPersonalData(t *testing.T) {
 		Email:          &email,
 		BirthDate:      &birth,
 		BalanceMinutes: 120,
+		IsBanned:       true,
 		Rating:         4.5,
 	}
 
@@ -35,7 +36,17 @@ func TestPublicViewDropsPersonalData(t *testing.T) {
 		}
 	}
 
-	if pub.Username != "someone" || pub.BalanceMinutes != 120 || pub.Rating != 4.5 {
+	// Гаманець більше не публічний: user_id кожного автора лежить у відкритій
+	// стрічці, тож по ньому читався чужий баланс. Свій фронт бере з
+	// /users/profile/:id, який за UserOwnershipMiddleware.
+	if pub.BalanceMinutes != 0 || pub.FrozenMinutes != 0 || pub.MentoredMinutes != 0 || pub.LearnedMinutes != 0 {
+		t.Error("PublicView лишив хвилини у відкритій відповіді")
+	}
+	if pub.IsBanned {
+		t.Error("PublicView лишив статус бана у відкритій відповіді")
+	}
+
+	if pub.Username != "someone" || pub.Rating != 4.5 {
 		t.Error("PublicView зрізав публічні поля, які потрібні фронту")
 	}
 

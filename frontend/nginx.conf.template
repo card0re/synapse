@@ -19,10 +19,24 @@ server {
 
     add_header X-Robots-Tag $robots_tag always;
 
+    # Жодного з цих заголовків прод не віддавав (перевірено на synapse.tel).
+    # CSP свідомо немає: сторінка тягне Google OAuth, аватарки Google і
+    # вебсокет до API, тож вгадана політика зламала б сайт — її треба писати
+    # окремо, звіряючись із реальними запитами.
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
     # Ассети мають хеш у назві файлу — можна кешувати назовсім.
     location /assets/ {
         expires 1y;
+        # add_header на рівні location скасовує всі успадковані, тож потрібні
+        # тут ще раз — інакше js і css їдуть зовсім без заголовків.
         add_header Cache-Control "public, immutable";
+        add_header X-Robots-Tag $robots_tag always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
     }
 
     # SPA-фолбек віддавав 200 навіть на /.env та /.git/config — сканери

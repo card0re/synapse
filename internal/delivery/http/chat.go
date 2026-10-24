@@ -8,7 +8,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 )
@@ -56,8 +55,9 @@ func (h *Handler) WebSocketChat(c *gin.Context) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		secret := os.Getenv("JWT_SECRET_KEY")
-		return []byte(secret), nil
+		// Через getJWTSecret, а не os.Getenv: без секрету той варіант мовчки
+		// перевіряв підпис порожнім ключем, тобто приймав будь-який токен.
+		return getJWTSecret(), nil
 	})
 
 	if err != nil || !token.Valid {

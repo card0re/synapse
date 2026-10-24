@@ -27,6 +27,22 @@ func TestPgxCannotEncodeStringAsDate(t *testing.T) {
 	}
 }
 
+// Кожен стан, що рухав хвилини, закінчується кінцевим: повернення ставить
+// rejected/cancelled, виплата — completed. Якщо з котрогось із них знову можна
+// вийти, та сама сума проводиться вдруге.
+func TestTerminalDealStatuses(t *testing.T) {
+	for _, s := range []string{"completed", "rejected", "cancelled"} {
+		if !isTerminalDealStatus(s) {
+			t.Errorf("%q має бути кінцевим: вихід із нього проводить гроші вдруге", s)
+		}
+	}
+	for _, s := range []string{"pending", "negotiating", "accepted", "cancel_requested", "disputed"} {
+		if isTerminalDealStatus(s) {
+			t.Errorf("%q кінцевим не є — угода з нього ще має рухатись", s)
+		}
+	}
+}
+
 func TestUpdateProfileQueryCastsAndNullifies(t *testing.T) {
 	if !strings.Contains(updateProfileQuery, "NULLIF($6, '')::date") {
 		t.Error("birth_date має йти через ::date, інакше pgx не закодує рядок і збереження дати впаде")

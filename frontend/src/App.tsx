@@ -62,8 +62,6 @@ export default function App() {
                                 <Route path="/" element={<Landing />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/register" element={<Register />} />
-                                <Route path="/terms" element={<Terms />} />
-                                <Route path="/privacy" element={<Privacy />} />
                             </Route>
 
                             {/* Сторінки напрямків — поза обома guard'ами: PublicRoute
@@ -71,6 +69,8 @@ export default function App() {
                                 відкриватися будь-кому, зокрема з пошуку. */}
                             <Route path="/skills" element={<SkillsIndex />} />
                             <Route path="/skills/:slug" element={<SkillCategory />} />
+                            <Route path="/terms" element={<Terms />} />
+                            <Route path="/privacy" element={<Privacy />} />
 
                             {/* Захищені сторінки (з нижнім навбаром) */}
                             <Route element={<ProtectedRoute />}>

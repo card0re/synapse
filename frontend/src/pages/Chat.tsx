@@ -203,7 +203,8 @@ export default function Chat() {
 
     const sendMessage = (e: React.FormEvent) => {
         e.preventDefault()
-        if (!newMessage.trim() || !ws || !partnerId) return
+        if (!newMessage.trim() || !partnerId) return
+        if (!ws) { toast.error("Немає з'єднання з чатом, оновіть сторінку"); return }
 
         if (editingMsgId) {
             ws.send(JSON.stringify({ action: "edit", id: editingMsgId, receiver_id: partnerId, text: newMessage }));

@@ -11,7 +11,7 @@ import { API_URL } from "@/lib/api"
 interface SystemStats { total_users: number; total_skills: number; total_deals: number; completed_deals: number; total_circulating: number; total_frozen: number }
 interface User { id: string; username: string; email: string; phone_number: string; balance_minutes: number; frozen_minutes: number; role: string; rating: number; is_banned: boolean }
 interface Deal { id: string; skill_title: string; initiator_name: string; master_name: string; status: string; created_at: string }
-interface Skill { id: string; title: string; user_name: string; price: number; is_active: boolean }
+interface Skill { id: string; title: string; username: string; price: number; is_active: boolean }
 interface NewsItem { id: number; title: string; content: string; created_at: string }
 interface Report { id: string; reporter_name: string; target_type: string; target_info: string; reason: string; details: string; created_at: string; status: string }
 
@@ -87,10 +87,15 @@ export default function Admin() {
 
     const handleSaveDeal = async (e: React.FormEvent) => {
         e.preventDefault(); if (!editingDeal) return;
-        const res = await fetch(`${API_URL}/deals/${editingDeal.id}/status`, {
-            method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ status: editingDeal.status })
-        })
+        // через загальний ендпоінт 'cancelled' — це лише ЗАПИТ на скасування, хвилини учня лишаються замороженими
+        const res = editingDeal.status === 'cancelled'
+            ? await fetch(`${API_URL}/admin/deals/${editingDeal.id}/cancel`, {
+                method: "PUT", headers: { "Authorization": `Bearer ${token}` }
+            })
+            : await fetch(`${API_URL}/deals/${editingDeal.id}/status`, {
+                method: "PUT", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                body: JSON.stringify({ status: editingDeal.status })
+            })
         if (res.ok) { toast.success("Статус угоди змінено"); setEditingDeal(null); loadData(); } else { toast.error("Помилка") }
     }
 
@@ -430,7 +435,7 @@ export default function Admin() {
                                 {skills.map(skill => (
                                     <tr key={skill.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/20">
                                         <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{skill.title}</td>
-                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{skill.user_name}</td>
+                                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{skill.username}</td>
                                         <td className="px-4 py-3 text-center font-black text-indigo-600 dark:text-indigo-400">{skill.price}</td>
                                         <td className="px-4 py-3 text-center">
                                             {skill.is_active ? <span className="text-green-500 font-bold text-xs">Активно</span> : <span className="text-slate-400 font-bold text-xs">Вимкнено</span>}

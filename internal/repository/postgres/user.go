@@ -217,10 +217,12 @@ func (r *UserRepo) VerifyAuthCode(ctx context.Context, code string) (*domain.Use
 // кожне збереження дати падало помилкою драйвера (500) і жоден користувач ніколи
 // не міг підтвердити вік. NULLIF для phone_number — як в AdminUpdateUser:
 // порожній рядок це «немає телефону», а не значення, і унікальний індекс
-// users_phone_number_key пускає таке лише в один рядок.
+// users_phone_number_key пускає таке лише в один рядок. COALESCE на username:
+// стрічка читає його в звичайний string, тож один PUT без цього поля клав NULL
+// у базу і далі валив увесь публічний фід помилкою сканування.
 const updateProfileQuery = `
     UPDATE users
-    SET username = $1, phone_number = NULLIF($2, ''), bio = $3, avatar_url = $4, city_id = $5, birth_date = NULLIF($6, '')::date
+    SET username = COALESCE($1, username), phone_number = NULLIF($2, ''), bio = $3, avatar_url = $4, city_id = $5, birth_date = NULLIF($6, '')::date
     WHERE id = $7
 `
 
@@ -239,7 +241,7 @@ func (r *UserRepo) CreateReview(ctx context.Context, dealID, reviewerID, targetI
 	query := `
 		INSERT INTO reviews (deal_id, reviewer_id, target_id, score, comment) 
 		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (deal_id) DO UPDATE 
+		ON CONFLICT (deal_id, reviewer_id) DO UPDATE
 		SET score = EXCLUDED.score, comment = EXCLUDED.comment`
 
 	_, err = tx.ExecContext(ctx, query, dealID, reviewerID, targetID, score, comment)
@@ -338,7 +340,8 @@ func (r *UserRepo) CompleteDeal(ctx context.Context, dealID string) error {
 
 	var initiatorID, receiverID string
 	var price int
-	err = tx.QueryRowxContext(ctx, "SELECT initiator_id, receiver_id, price FROM deals WHERE id = $1 AND status IN ('accepted', 'disputed')", dealID).Scan(&initiatorID, &receiverID, &price)
+	// FOR UPDATE — інакше два одночасні завершення платять майстру двічі.
+	err = tx.QueryRowxContext(ctx, "SELECT initiator_id, receiver_id, price FROM deals WHERE id = $1 AND status IN ('accepted', 'disputed') FOR UPDATE", dealID).Scan(&initiatorID, &receiverID, &price)
 	if err != nil {
 		return errors.New("угода не знайдена або ще не прийнята")
 	}
@@ -515,6 +518,14 @@ func (r *UserRepo) GetOutgoingDeals(ctx context.Context, initiatorID string) ([]
 	return deals, err
 }
 
+// isTerminalDealStatus — з цих станів угода вже нікуди не йде, і гроші по ній
+// вже порахували. Поки виходу звідси не було закрито, учасник друкував хвилини
+// по колу: accepted -> rejected повертає ціну на баланс, rejected -> accepted
+// повертає статус і балансу не чіпає, далі знову rejected — і так нескінченно.
+func isTerminalDealStatus(s string) bool {
+	return s == "completed" || s == "rejected" || s == "cancelled"
+}
+
 func (r *UserRepo) UpdateDealStatus(ctx context.Context, dealID string, status string, scheduledAt *time.Time) error {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -524,9 +535,16 @@ func (r *UserRepo) UpdateDealStatus(ctx context.Context, dealID string, status s
 
 	var initiatorID, receiverID, currentStatus string
 	var price int
-	err = tx.QueryRowxContext(ctx, "SELECT initiator_id, receiver_id, status, price FROM deals WHERE id = $1", dealID).Scan(&initiatorID, &receiverID, &currentStatus, &price)
+	// FOR UPDATE: без нього два одночасні запити читають той самий статус і
+	// обидва проводять повернення (або виплату) по одній угоді. CreateDeal так
+	// уже робить для рядка користувача.
+	err = tx.QueryRowxContext(ctx, "SELECT initiator_id, receiver_id, status, price FROM deals WHERE id = $1 FOR UPDATE", dealID).Scan(&initiatorID, &receiverID, &currentStatus, &price)
 	if err != nil {
 		return err
+	}
+
+	if isTerminalDealStatus(currentStatus) {
+		return errors.New("угоду вже закрито")
 	}
 
 	if status == "rejected" || status == "cancelled" {
@@ -1188,11 +1206,17 @@ func (r *UserRepo) CreateReport(ctx context.Context, reporterID, targetType, tar
 func (r *UserRepo) GetPendingReports(ctx context.Context) ([]domain.Report, error) {
 	var reports []domain.Report
 	query := `
+		-- id::text, а не r.target_id::uuid: reports.target_id — varchar(100) і
+		-- приходить із запиту користувача без перевірки, тож зворотне
+		-- приведення міняло б 42883 на 22P02 на першому ж сміттєвому рядку.
+		-- Без приведення взагалі запит падав завжди: uuid = varchar і
+		-- integer = varchar операторів немає, тобто скарги в адмінці не
+		-- відкривались жодного разу.
 		SELECT r.*, u.username as reporter_name,
 		CASE
-			WHEN r.target_type = 'user' THEN (SELECT username FROM users WHERE id = r.target_id)
-			WHEN r.target_type = 'skill' THEN (SELECT title FROM skills WHERE id = r.target_id)
-			WHEN r.target_type = 'deal' THEN (SELECT 'Угода ' || id FROM deals WHERE id = r.target_id)
+			WHEN r.target_type = 'user' THEN (SELECT username FROM users WHERE id::text = r.target_id)
+			WHEN r.target_type = 'skill' THEN (SELECT title FROM skills WHERE id::text = r.target_id)
+			WHEN r.target_type = 'deal' THEN (SELECT 'Угода ' || id FROM deals WHERE id::text = r.target_id)
 			ELSE 'Невідомо'
 		END as target_info
 		FROM reports r

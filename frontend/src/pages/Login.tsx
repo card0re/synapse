@@ -71,8 +71,9 @@ export default function Login() {
 
             toast.success("Успішний вхід!");
 
-            if (data.user.role === "admin") navigate("/admin")
-            else navigate("/feed")
+            // повне перезавантаження, а не SPA-перехід: WebSocketProvider читає токен один раз при монтуванні поза Router
+            if (data.user.role === "admin") window.location.href = "/admin"
+            else window.location.href = "/feed"
         } else {
             toast.error(data.error || "Помилка авторизації")
         }

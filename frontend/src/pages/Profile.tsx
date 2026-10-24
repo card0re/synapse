@@ -117,6 +117,10 @@ export default function Profile() {
                     username: userData.username || "", phone: userData.phone_number || "",
                     bio: userData.bio || "", avatar_url: userData.avatar_url || "", city_id: userData.city_id || 0
                 });
+            } else {
+                toast.error(userData.error || "Не вдалося завантажити профіль");
+                navigate("/feed");
+                return;
             }
 
             const sData = await sRes.json();
@@ -247,6 +251,7 @@ export default function Profile() {
             method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: kycEmail })
         });
         if (res.ok) { toast.success("Код відправлено!"); setIsCodeSent(true); }
+        else { toast.error("Не вдалося відправити код"); }
     }
 
     const confirmEmailVerification = async () => {
@@ -314,7 +319,8 @@ export default function Profile() {
     const handleLogout = () => {
         for (const k of ["token", "userId", "role", "tgId"]) localStorage.removeItem(k)
         toast.success("Ви вийшли з акаунта")
-        navigate("/login", { replace: true })
+        // повне перезавантаження, а не SPA-перехід: інакше WebSocket лишається відкритим під старим токеном
+        window.location.href = "/login"
     }
 
     return (

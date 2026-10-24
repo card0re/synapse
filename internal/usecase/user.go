@@ -8,6 +8,9 @@ import (
 	"github.com/card0re/synapse/internal/auth"
 	"github.com/card0re/synapse/internal/domain"
 	"github.com/card0re/synapse/internal/service"
+	// Бот шле ці повідомлення з ParseMode=HTML, тож назва навички з кутовою
+	// дужкою ламала доставку цілком — Telegram відповідає помилкою розбору.
+	"html"
 	"net/http"
 	"os"
 	"time"
@@ -110,7 +113,7 @@ func (u *userUseCase) AddSkill(ctx context.Context, userID string, skillType str
 
 				user, err := u.repo.GetUserByID(bgCtx, uID)
 				if err == nil && u.notifier != nil && user.TelegramID != nil {
-					text := fmt.Sprintf("<b>%s</b>\n\n%s", newsTitle, newsContent)
+					text := fmt.Sprintf("<b>%s</b>\n\n%s", html.EscapeString(newsTitle), html.EscapeString(newsContent))
 					u.notifier.SendNotification(*user.TelegramID, text)
 				}
 
@@ -292,7 +295,7 @@ func (u *userUseCase) SaveMessage(ctx context.Context, msg domain.Message) error
 	if err == nil {
 		sender, _ := u.repo.GetUserByID(ctx, msg.SenderID)
 		if sender != nil {
-			tgMsg := fmt.Sprintf("💬 <b>Нове повідомлення</b> від %s:\n\n<i>%s</i>\n\nЗайдіть на платформу, щоб відповісти.", sender.Username, msg.Text)
+			tgMsg := fmt.Sprintf("💬 <b>Нове повідомлення</b> від %s:\n\n<i>%s</i>\n\nЗайдіть на платформу, щоб відповісти.", html.EscapeString(sender.Username), html.EscapeString(msg.Text))
 			go u.SendTelegramMessage(context.Background(), msg.ReceiverID, tgMsg)
 		}
 	}
@@ -481,7 +484,7 @@ func (u *userUseCase) CreateDeal(ctx context.Context, skillID, initiatorID strin
 	err = u.repo.CreateDeal(ctx, skillID, initiatorID)
 
 	if err == nil {
-		msg := fmt.Sprintf("🎓 <b>Нова заявка!</b>\n\nКористувач <b>%s</b> хоче навчитися <b>%s</b>.\nЗайдіть на платформу, щоб прийняти або відхилити.", user.Username, skill.Title)
+		msg := fmt.Sprintf("🎓 <b>Нова заявка!</b>\n\nКористувач <b>%s</b> хоче навчитися <b>%s</b>.\nЗайдіть на платформу, щоб прийняти або відхилити.", html.EscapeString(user.Username), html.EscapeString(skill.Title))
 		go u.SendTelegramMessage(context.Background(), skill.UserID, msg)
 	}
 
@@ -520,13 +523,13 @@ func (u *userUseCase) UpdateDealStatus(ctx context.Context, dealID, newStatus st
 			if scheduledAt != nil {
 				timeStr = scheduledAt.Format("15:04 02.01")
 			}
-			msg = fmt.Sprintf("✅ <b>Угоду схвалено!</b>\n\nМайстер прийняв вашу заявку на <b>%s</b>. Час: %s. Посилання на Meet вже в профілі!", skill.Title, timeStr)
+			msg = fmt.Sprintf("✅ <b>Угоду схвалено!</b>\n\nМайстер прийняв вашу заявку на <b>%s</b>. Час: %s. Посилання на Meet вже в профілі!", html.EscapeString(skill.Title), timeStr)
 			go u.SendTelegramMessage(context.Background(), deal.InitiatorID, msg)
 		case "rejected":
-			msg = fmt.Sprintf("❌ <b>Угоду відхилено</b>\n\nМайстер відхилив вашу заявку на <b>%s</b>. Хвилини повернуто на баланс.", skill.Title)
+			msg = fmt.Sprintf("❌ <b>Угоду відхилено</b>\n\nМайстер відхилив вашу заявку на <b>%s</b>. Хвилини повернуто на баланс.", html.EscapeString(skill.Title))
 			go u.SendTelegramMessage(context.Background(), deal.InitiatorID, msg)
 		case "completed":
-			msg = fmt.Sprintf("🏁 <b>Урок завершено!</b>\n\nУрок з <b>%s</b> успішно завершено. Хвилини переказано. Не забудьте залишити відгук!", skill.Title)
+			msg = fmt.Sprintf("🏁 <b>Урок завершено!</b>\n\nУрок з <b>%s</b> успішно завершено. Хвилини переказано. Не забудьте залишити відгук!", html.EscapeString(skill.Title))
 			go u.SendTelegramMessage(context.Background(), deal.InitiatorID, msg)
 			go u.SendTelegramMessage(context.Background(), skill.UserID, msg)
 		}
@@ -608,7 +611,7 @@ func (u *userUseCase) CheckUpcomingLessons(ctx context.Context) error {
 				timeStr = deal.ScheduledAt.Format("15:04")
 			}
 			msg := fmt.Sprintf("⏰ <b>Нагадування!</b>\n\nВаш урок <b>%s</b> почнеться приблизно через годину (%s)!\n\n📹 Посилання на зустріч:\n%s",
-				skill.Title, timeStr, deal.MeetingURL)
+				html.EscapeString(skill.Title), timeStr, deal.MeetingURL)
 
 			go u.SendTelegramMessage(context.Background(), deal.InitiatorID, msg)
 			go u.SendTelegramMessage(context.Background(), skill.UserID, msg)

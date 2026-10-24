@@ -6,7 +6,12 @@
 --    42P10 ("no unique or exclusion constraint matching the ON CONFLICT
 --    specification") — тобто жоден відгук ніколи не зберігався. Таблиця reviews
 --    порожня, тож індекс стає без конфліктів.
-CREATE UNIQUE INDEX IF NOT EXISTS reviews_deal_id_key ON public.reviews (deal_id);
+--    Унікальність тут по парі (угода, автор), а не по угоді: сторін в угоді
+--    дві, і кожна лишає свій відгук. З індексом лише на deal_id другий відгук
+--    затирав перший, при цьому reviewer_id і target_id у рядку лишались від
+--    першого — і перерахунок рейтингу ставив новому адресату 0.00.
+DROP INDEX IF EXISTS reviews_deal_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS reviews_deal_reviewer_key ON public.reviews (deal_id, reviewer_id);
 
 -- 2. users.email без унікальності. Реєстрація через пошту розраховує саме на
 --    помилку бази ("Можливо, такий email вже існує"), а GetUserByEmail бере

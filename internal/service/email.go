@@ -44,11 +44,15 @@ func (s *emailService) Start() {
 	}
 }
 
+// SendAsync не чекає місця в черзі. Воркер віддає один лист на дві секунди,
+// тож після сотого запису відправка блокувала сам http-хендлер, аж поки
+// Cloud Run не обірве запит — а черга наповнюється з відкритого
+// /users/verify-email/send. Переповнення тепер коштує лист, а не застряглий запит.
 func (s *emailService) SendAsync(to, subject, body string) {
-	s.jobChannel <- EmailPayload{
-		To:      to,
-		Subject: subject,
-		Body:    body,
+	select {
+	case s.jobChannel <- EmailPayload{To: to, Subject: subject, Body: body}:
+	default:
+		log.Printf("🚨 Черга email переповнена, лист на %s відкинуто\n", to)
 	}
 }
 

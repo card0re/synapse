@@ -65,8 +65,8 @@ export default function PublicProfile() {
             })
 
         if (myId && token) {
-            // 👇 ИСПРАВЛЕНИЕ: Изменили profile на public, чтобы избежать конфликта с telegram_id
-            fetch(`${API_URL}/users/public/${myId}`, {
+            // власний баланс — лише з owner-guarded /profile: публічний ендпоінт гаманець не віддає
+            fetch(`${API_URL}/users/profile/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
                 .then(r => r.json())
@@ -107,7 +107,7 @@ export default function PublicProfile() {
     }
 
     if (loading) return <div className="p-8 text-center text-slate-500">Завантаження...</div>
-    if (!user || user.id === "") return <div className="p-8 text-center text-slate-500">Користувача не знайдено</div>
+    if (!user || !user.id) return <div className="p-8 text-center text-slate-500">Користувача не знайдено</div>
 
     const reviewCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
     reviews.forEach(r => { if (r.score >= 1 && r.score <= 5) reviewCounts[r.score as keyof typeof reviewCounts]++ })

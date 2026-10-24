@@ -51,7 +51,10 @@ type addSkillInput struct {
 	Type        string  `json:"type" binding:"required"`
 	Title       string  `json:"title" binding:"required"`
 	Description *string `json:"description"`
-	Price       int     `json:"price" binding:"required"`
+	// binding:"required" відсікає лише нуль. Від'ємна ціна проходила далі й у
+	// CreateDeal нараховувала хвилини замовнику замість того, щоб списати.
+	// min=10 — та сама межа, що вже стоїть у формі (Profile.tsx, min="10").
+	Price int `json:"price" binding:"required,min=10"`
 }
 
 type AdminUserUpdateRequest struct {
@@ -70,16 +73,11 @@ type updateProfileInput struct {
 	AvatarURL   *string `json:"avatar_url"`
 }
 
-type registerInput struct {
-	TelegramID  int64   `json:"telegram_id" binding:"required"`
-	Username    *string `json:"username"`
-	PhoneNumber *string `json:"phone_number"`
-}
-
+// target_id свідомо немає: кого оцінюють, визначає сама угода. Поки він
+// приходив у тілі, будь-який користувач ставив оцінку будь-кому — або собі.
 type createReviewInput struct {
-	TargetID string  `json:"target_id" binding:"required"`
-	Score    int     `json:"score" binding:"required"`
-	Comment  *string `json:"comment"`
+	Score   int     `json:"score" binding:"required"`
+	Comment *string `json:"comment"`
 }
 
 type uriInput struct {
@@ -91,8 +89,11 @@ type loginEmailInput struct {
 	Password string `json:"password" binding:"required"`
 }
 
+// Status — закритий список: раніше будь-який рядок проходив у catch-all гілку
+// репозиторію і ставав статусом угоди, зокрема вигаданий, з якого потім можна
+// було повернутись у грошову гілку.
 type updateDealStatusInput struct {
-	Status      string     `json:"status" binding:"required"`
+	Status      string     `json:"status" binding:"required,oneof=pending negotiating accepted rejected cancelled cancel_requested completed disputed"`
 	ScheduledAt *time.Time `json:"scheduled_at"`
 }
 
@@ -126,7 +127,10 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 		authGroup := api.Group("/users")
 		authGroup.Use(RateLimitAuth())
 		{
-			authGroup.POST("/register", h.registerUser)
+			// POST /register тут не було чого робити: реєстрацію з Telegram
+			// бот виконує в процесі (internal/bot/telegram.go), а маршрут був
+			// відкритий і на відомий telegram_id повертав чужу картку цілком —
+			// з поштою, телефоном і датою народження.
 			authGroup.POST("/login", h.loginUser)
 			authGroup.POST("/login/email", h.loginWithEmail)
 			authGroup.POST("/login/google", h.googleLogin)
@@ -219,25 +223,6 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			}
 		}
 	}
-}
-
-func (h *Handler) registerUser(c *gin.Context) {
-	var input registerInput
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
-		return
-	}
-
-	user, err := h.userUC.RegisterUser(c.Request.Context(), input.TelegramID, input.Username, input.PhoneNumber)
-	if err != nil {
-		serverError(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Пользователь успешно зарегистрирован",
-		"user":    user,
-	})
 }
 
 // abortIfBanned — єдине місце, де бан узагалі щось означає: далі токен видається
@@ -445,12 +430,27 @@ func (h *Handler) createReview(c *gin.Context) {
 		return
 	}
 
-	if !h.isDealParticipant(c, dealID) {
+	// Не isDealParticipant: той для адміна повертає true, не читаючи угоду, і
+	// віддати з неї другу сторону не може. Тут потрібна саме угода.
+	deal, err := h.userUC.GetDealByID(c.Request.Context(), dealID)
+	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Відгук може залишити лише учасник угоди"})
 		return
 	}
 
-	err := h.userUC.CreateReview(c.Request.Context(), dealID, currentUserID(c), input.TargetID, input.Score, input.Comment)
+	me := currentUserID(c)
+	var targetID string
+	switch me {
+	case deal.InitiatorID:
+		targetID = deal.ReceiverID
+	case deal.ReceiverID:
+		targetID = deal.InitiatorID
+	default:
+		c.JSON(http.StatusForbidden, gin.H{"error": "Відгук може залишити лише учасник угоди"})
+		return
+	}
+
+	err = h.userUC.CreateReview(c.Request.Context(), dealID, me, targetID, input.Score, input.Comment)
 	if err != nil {
 		serverError(c, err)
 		return
@@ -632,8 +632,10 @@ func generate6DigitCode() string {
 	return fmt.Sprintf("%06d", n.Int64())
 }
 func (h *Handler) sendEmailVerification(c *gin.Context) {
+	// Маршрут відкритий, тож без перевірки формату сюди можна було підставити
+	// будь-який рядок і слати листи куди завгодно з нашого акаунта.
 	var input struct {
-		Email string `json:"email"`
+		Email string `json:"email" binding:"required,email"`
 	}
 	if err := c.BindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Не вказано email"})
@@ -1015,7 +1017,7 @@ func (h *Handler) GetChatPreferences(c *gin.Context) {
 func (h *Handler) UpdateAdminSkill(c *gin.Context) {
 	var input struct {
 		Title    string `json:"title"`
-		Price    int    `json:"price"`
+		Price    int    `json:"price" binding:"required,min=10"`
 		IsActive bool   `json:"is_active"`
 	}
 	if err := c.BindJSON(&input); err != nil {

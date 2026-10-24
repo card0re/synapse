@@ -68,7 +68,7 @@ export default function Feed() {
 
     const fetchBalance = async () => {
         try {
-            const res = await fetch(`${API_URL}/users/public/${myId}`, {
+            const res = await fetch(`${API_URL}/users/profile/${myId}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             const data = await res.json()
@@ -100,16 +100,17 @@ export default function Feed() {
         } catch (e) { console.error(e) }
     }
 
-    const loadFeed = async () => {
+    // фільтри приходять аргументом, бо скидання має запитати стрічку до того, як React застосує новий стейт
+    const loadFeed = async (f = { search, filterType, cityId, minPrice, maxPrice, minRating }) => {
         setLoading(true)
         try {
             const query = new URLSearchParams()
-            if (search) query.append("search", search)
-            if (filterType !== "all") query.append("type", filterType)
-            if (cityId !== "0") query.append("city_id", cityId)
-            if (minPrice) query.append("min_price", minPrice)
-            if (maxPrice) query.append("max_price", maxPrice)
-            if (minRating && minRating !== "0") query.append("min_rating", minRating)
+            if (f.search) query.append("search", f.search)
+            if (f.filterType !== "all") query.append("type", f.filterType)
+            if (f.cityId !== "0") query.append("city_id", f.cityId)
+            if (f.minPrice) query.append("min_price", f.minPrice)
+            if (f.maxPrice) query.append("max_price", f.maxPrice)
+            if (f.minRating && f.minRating !== "0") query.append("min_rating", f.minRating)
 
             const res = await fetch(`${API_URL}/feed/?${query.toString()}`, {
                 headers: { "Authorization": `Bearer ${token}` }
@@ -140,7 +141,7 @@ export default function Feed() {
     const handleResetFilters = () => {
         setSearch(""); setFilterType("all"); setCityId("0"); setMinPrice(""); setMaxPrice(""); setMinRating("0");
         setActiveTab('all'); setVisibleCount(10);
-        setTimeout(() => loadFeed(), 0)
+        loadFeed({ search: "", filterType: "all", cityId: "0", minPrice: "", maxPrice: "", minRating: "0" })
     }
 
     const formatAge = (age: number) => {

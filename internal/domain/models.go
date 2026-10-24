@@ -164,6 +164,15 @@ func (u User) PublicView() User {
 	u.PhoneNumber = nil
 	u.Email = nil
 	u.BirthDate = nil
+	u.FullName = nil
+	// Гаманець і статус бана теж нікого стороннього не стосуються: user_id
+	// кожного автора лежить у публічній стрічці, тож по ньому можна було
+	// прочитати чужий баланс. Свій баланс фронт бере з /users/profile/:id.
+	u.BalanceMinutes = 0
+	u.FrozenMinutes = 0
+	u.MentoredMinutes = 0
+	u.LearnedMinutes = 0
+	u.IsBanned = false
 	return u
 }
 

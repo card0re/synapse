@@ -35,6 +35,13 @@ func main() {
 		log.Fatalf("❌ Не вдалося підключитися до БД: %v", err)
 	}
 	defer db.Close()
+	// Пул за замовчуванням не обмежений: при автоскейлі Cloud Run інстанси
+	// разом вичерпували ліміт з'єднань Cloud SQL, і тоді падали вже всі запити.
+	// MaxIdle тримаємо рівним MaxOpen, інакше Go закриває 8 з 10 з'єднань
+	// одразу після використання і на кожному сплеску переукладає TLS.
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(30 * time.Minute)
 	log.Println("✅ БД успішно підключена")
 
 	// ponytail: схема в проді збиралась руками й розійшлася з тим, що очікує код.
@@ -53,7 +60,12 @@ func main() {
 		`ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_to_text TEXT`,
 		// CreateReview робить ON CONFLICT (deal_id) — без цього індексу
 		// Postgres відповідає 42P10 і жоден відгук не зберігається
-		`CREATE UNIQUE INDEX IF NOT EXISTS reviews_deal_id_key ON reviews (deal_id)`,
+		// Унікальність по парі (угода, автор): сторін дві, кожна лишає свій
+		// відгук. Індекс лише на deal_id давав друге збереження поверх першого,
+		// а рейтинг нового адресата після цього ставав 0.00. DROP обов'язковий —
+		// інакше старий індекс перетворює другий відгук на 23505.
+		`DROP INDEX IF EXISTS reviews_deal_id_key`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS reviews_deal_reviewer_key ON reviews (deal_id, reviewer_id)`,
 		// реєстрація розраховує на помилку бази при повторній пошті,
 		// а два акаунти з однією поштою означають вхід у випадковий з них
 		`CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email)`,
