@@ -129,6 +129,7 @@ type UserUseCase interface {
 	GetUserChats(ctx context.Context, userID string) ([]ChatContact, error)
 	MarkChatAsRead(ctx context.Context, userID, partnerID string) error
 	GetNews(ctx context.Context, userID string) ([]News, error)
+	GetAllGlobalNews(ctx context.Context) ([]News, error)
 	GetMatches(ctx context.Context, userID string) ([]FeedItem, error)
 	CreateCertificate(ctx context.Context, cert *Certificate) error
 	GetCertificate(ctx context.Context, id string) (*CertificateDetails, error)

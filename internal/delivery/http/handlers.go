@@ -225,6 +225,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 			admin := protected.Group("/admin")
 			admin.Use(h.RequireAdmin())
 			{
+				admin.GET("/news", h.GetNewsAdmin)
 				admin.POST("/news", h.CreateNews)
 				admin.DELETE("/news/:id", h.DeleteNews)
 				admin.PUT("/news/:id", h.UpdateNews)
@@ -811,6 +812,17 @@ func (h *Handler) GetNews(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{"news": news})
+}
+
+// GetNewsAdmin — повний список глобальних новин. Адмінка раніше брала
+// користувацький /news: п'ять найсвіжіших упереміш з особистими.
+func (h *Handler) GetNewsAdmin(c *gin.Context) {
+	news, err := h.userUC.GetAllGlobalNews(c.Request.Context())
+	if err != nil {
+		serverError(c, err)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"news": news})
 }
 

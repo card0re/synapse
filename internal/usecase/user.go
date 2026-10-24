@@ -353,6 +353,14 @@ func (u *userUseCase) GetNews(ctx context.Context, userID string) ([]domain.News
 	return u.repo.GetLatestNews(ctx, userID, 5)
 }
 
+// GetAllGlobalNews — для адмінки. Вона показувала той самий список, що й
+// користувач: п'ять найсвіжіших, та ще й упереміш із особистими новинами. Тож
+// шосту новину вже нічим було ні відредагувати, ні видалити, а чужі особисті
+// повідомлення виглядали як загальні. Порожній userID лишає лише глобальні.
+func (u *userUseCase) GetAllGlobalNews(ctx context.Context) ([]domain.News, error) {
+	return u.repo.GetLatestNews(ctx, "", 500)
+}
+
 func (u *userUseCase) GetMatches(ctx context.Context, userID string) ([]domain.FeedItem, error) {
 	user, err := u.repo.GetUserByID(ctx, userID)
 	if err != nil {

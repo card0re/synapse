@@ -62,7 +62,8 @@ export default function Admin() {
                 fetch(`${API_URL}/admin/stats`, { headers: { "Authorization": `Bearer ${token}` } }),
                 fetch(`${API_URL}/admin/deals`, { headers: { "Authorization": `Bearer ${token}` } }),
                 fetch(`${API_URL}/admin/skills`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`${API_URL}/news`, { headers: { "Authorization": `Bearer ${token}` } }),
+                // /admin/news, а не /news: той віддає лише п'ять найсвіжіших і домішує особисті
+                fetch(`${API_URL}/admin/news`, { headers: { "Authorization": `Bearer ${token}` } }),
                 fetch(`${API_URL}/admin/reports`, { headers: { "Authorization": `Bearer ${token}` } })
             ])
             if (statsRes.ok) { const data = await statsRes.json(); setStats(data.stats); setUsers(data.users || []) }
