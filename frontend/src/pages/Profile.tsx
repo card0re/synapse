@@ -198,7 +198,9 @@ export default function Profile() {
         bio: editForm.bio,
         avatar_url: editForm.avatar_url,
         city_id: Number(editForm.city_id) || null,
-        birth_date: user?.birth_date ?? null,
+        // бекенд віддає дату як RFC3339 ("1983-12-21T00:00:00Z") — повертаємо її
+        // у тому вигляді, який чекає колонка date
+        birth_date: user?.birth_date?.slice(0, 10) ?? null,
         ...overrides,
     })
 
@@ -237,6 +239,7 @@ export default function Profile() {
             body: JSON.stringify(payload)
         });
         if (res.ok) { toast.success("Профіль оновлено!"); loadData(); setIsEditingProfile(false); }
+        else { toast.error("Не вдалося зберегти профіль"); }
     }
 
     const sendEmailVerification = async () => {

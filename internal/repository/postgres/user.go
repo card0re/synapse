@@ -212,13 +212,20 @@ func (r *UserRepo) VerifyAuthCode(ctx context.Context, code string) (*domain.Use
 	return &user, nil
 }
 
-func (r *UserRepo) UpdateProfile(ctx context.Context, userID string, username *string, phone *string, bio *string, avatarURL *string, cityID *int, birthDate *string) error {
-	query := `
-    UPDATE users 
-    SET username = $1, phone_number = $2, bio = $3, avatar_url = $4, city_id = $5, birth_date = $6
+// birth_date свідомо приводиться з тексту: pgx просить для колонки date бінарний
+// формат, а плану «Go string -> date (binary)» у нього немає, тож без ::date
+// кожне збереження дати падало помилкою драйвера (500) і жоден користувач ніколи
+// не міг підтвердити вік. NULLIF для phone_number — як в AdminUpdateUser:
+// порожній рядок це «немає телефону», а не значення, і унікальний індекс
+// users_phone_number_key пускає таке лише в один рядок.
+const updateProfileQuery = `
+    UPDATE users
+    SET username = $1, phone_number = NULLIF($2, ''), bio = $3, avatar_url = $4, city_id = $5, birth_date = NULLIF($6, '')::date
     WHERE id = $7
 `
-	_, err := r.db.ExecContext(ctx, query, username, phone, bio, avatarURL, cityID, birthDate, userID)
+
+func (r *UserRepo) UpdateProfile(ctx context.Context, userID string, username *string, phone *string, bio *string, avatarURL *string, cityID *int, birthDate *string) error {
+	_, err := r.db.ExecContext(ctx, updateProfileQuery, username, phone, bio, avatarURL, cityID, birthDate, userID)
 	return err
 }
 

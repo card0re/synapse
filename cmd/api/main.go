@@ -57,6 +57,10 @@ func main() {
 		// реєстрація розраховує на помилку бази при повторній пошті,
 		// а два акаунти з однією поштою означають вхід у випадковий з них
 		`CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users (email)`,
+		// UpdateProfile писав порожній рядок замість NULL, а users_phone_number_key
+		// пускає його лише в один рядок: другий, хто зберігав профіль, діставав 500.
+		// Прибираємо вже записані порожні рядки, інакше індекс так і тримає місце.
+		`UPDATE users SET phone_number = NULL WHERE phone_number = ''`,
 	} {
 		if _, err := db.Exec(stmt); err != nil {
 			log.Printf("⚠️ Схема: не вдалося виконати %q: %v", stmt, err)
