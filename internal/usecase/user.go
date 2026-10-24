@@ -486,7 +486,8 @@ func (u *userUseCase) IsBlockedBy(ctx context.Context, senderID, receiverID stri
 func (u *userUseCase) CreateDeal(ctx context.Context, skillID, initiatorID string) error {
 	skill, err := u.repo.GetSkillByID(ctx, skillID)
 	if err != nil {
-		return err
+		// Інакше на неіснуючу навичку клієнту летіло сире "sql: no rows in result set".
+		return errors.New("навичку не знайдено")
 	}
 	user, err := u.repo.GetUserByID(ctx, initiatorID)
 	if err != nil {
