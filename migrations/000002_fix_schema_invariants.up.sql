@@ -45,3 +45,11 @@ ALTER TABLE public.messages ADD COLUMN IF NOT EXISTS reply_to_text text;
 --    колонку під 8 цифр і додаємо час протухання (перевіряється у VerifyAuthCode).
 ALTER TABLE public.users ALTER COLUMN auth_code TYPE varchar(10);
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS auth_code_expires_at timestamptz;
+
+-- 7. Привітальні 120 хвилин можна було фармити: кожна реєстрація поштою давала
+--    їх без підтвердження. Тепер витрата (CreateDeal) дозволена лише з
+--    підтвердженого акаунта — реальний Telegram або підтверджена пошта (код чи
+--    Google). DEFAULT true при першому додаванні «дідусює» наявних, далі дефолт
+--    false, тож підтвердитись мусять лише нові акаунти.
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email_verified boolean DEFAULT true;
+ALTER TABLE public.users ALTER COLUMN email_verified SET DEFAULT false;

@@ -128,13 +128,14 @@ type OutgoingDeal struct {
 }
 
 type User struct {
-	ID          string  `db:"id" json:"id"`
-	TelegramID  *int64  `db:"telegram_id" json:"telegram_id"`
-	Username    string  `db:"username" json:"username"`
-	FullName    *string `db:"full_name" json:"full_name"`
-	PhoneNumber *string `db:"phone_number" json:"phone_number"`
-	Email       *string `db:"email" json:"email"`
-	BirthDate   *string `db:"birth_date" json:"birth_date"`
+	ID            string  `db:"id" json:"id"`
+	TelegramID    *int64  `db:"telegram_id" json:"telegram_id"`
+	Username      string  `db:"username" json:"username"`
+	FullName      *string `db:"full_name" json:"full_name"`
+	PhoneNumber   *string `db:"phone_number" json:"phone_number"`
+	Email         *string `db:"email" json:"email"`
+	EmailVerified bool    `db:"email_verified" json:"email_verified"`
+	BirthDate     *string `db:"birth_date" json:"birth_date"`
 
 	PasswordHash      *string    `db:"password_hash" json:"-"`
 	AuthCode          *string    `db:"auth_code" json:"-"`

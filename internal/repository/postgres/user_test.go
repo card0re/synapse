@@ -43,6 +43,25 @@ func TestTerminalDealStatuses(t *testing.T) {
 	}
 }
 
+// Заслін проти фарму: витрачати хвилини можна лише з підтвердженого акаунта.
+// Непідтверджена пошта без Telegram — це рівно той throwaway, яким набивали
+// привітальні 120, тож йому відмова.
+func TestCanSpendMinutes(t *testing.T) {
+	cases := []struct {
+		hasTelegram, emailVerified, want bool
+	}{
+		{true, false, true},   // реальний Telegram
+		{false, true, true},   // підтверджена пошта (код або Google)
+		{true, true, true},    // обидва
+		{false, false, false}, // throwaway: ні Telegram, ні підтвердженої пошти
+	}
+	for _, c := range cases {
+		if got := canSpendMinutes(c.hasTelegram, c.emailVerified); got != c.want {
+			t.Errorf("canSpendMinutes(tg=%v, verified=%v) = %v, want %v", c.hasTelegram, c.emailVerified, got, c.want)
+		}
+	}
+}
+
 func TestUpdateProfileQueryCastsAndNullifies(t *testing.T) {
 	if !strings.Contains(updateProfileQuery, "NULLIF($6, '')::date") {
 		t.Error("birth_date має йти через ::date, інакше pgx не закодує рядок і збереження дати впаде")

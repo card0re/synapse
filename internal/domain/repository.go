@@ -36,6 +36,7 @@ type UserRepository interface {
 	SetEmailCode(ctx context.Context, email, code string) error
 	VerifyEmailCode(ctx context.Context, email, code string) error
 	LinkEmail(ctx context.Context, userID, email string) error
+	SetEmailVerified(ctx context.Context, userID string) error
 	ToggleBan(ctx context.Context, userID string) error
 	GetAllDealsAdmin(ctx context.Context) ([]AdminDeal, error)
 	GetUserByID(ctx context.Context, id string) (*User, error)

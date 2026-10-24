@@ -289,6 +289,13 @@ func (r *UserRepo) AcceptDeal(ctx context.Context, dealID string) error {
 	return err
 }
 
+// canSpendMinutes — чи дозволено акаунту витрачати хвилини. Підтвердженим
+// вважається реальний Telegram (акаунт створює бот) або підтверджена пошта
+// (код або Google). Це єдиний заслін проти фарму привітальних хвилин.
+func canSpendMinutes(hasTelegram, emailVerified bool) bool {
+	return hasTelegram || emailVerified
+}
+
 func (r *UserRepo) CreateDeal(ctx context.Context, skillID string, initiatorID string) error {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
@@ -313,9 +320,21 @@ func (r *UserRepo) CreateDeal(ctx context.Context, skillID string, initiatorID s
 		return errors.New("ви вже відправили заявку на цю навичку")
 	}
 
+	// Витрачати хвилини можна лише з підтвердженого акаунта: інакше одна людина
+	// реєструє скільки завгодно акаунтів поштою (кожен з привітальними 120) і
+	// витрачає їх, бо пошта не підтверджується. Telegram-акаунт створює бот —
+	// це вже реальна особа; Google звіряє email_verified. Наявні акаунти
+	// «дідусювані» при додаванні колонки (DEFAULT true), тож нікого не зачіпає.
 	var balance int
-	err = tx.QueryRowxContext(ctx, "SELECT balance_minutes FROM users WHERE id = $1 FOR UPDATE", initiatorID).Scan(&balance)
-	if err != nil || balance < price {
+	var hasTelegram, emailVerified bool
+	err = tx.QueryRowxContext(ctx, "SELECT balance_minutes, telegram_id IS NOT NULL, email_verified FROM users WHERE id = $1 FOR UPDATE", initiatorID).Scan(&balance, &hasTelegram, &emailVerified)
+	if err != nil {
+		return err
+	}
+	if !canSpendMinutes(hasTelegram, emailVerified) {
+		return errors.New("підтвердіть пошту або прив'яжіть Telegram, щоб витрачати хвилини")
+	}
+	if balance < price {
 		return errors.New("недостатньо хвилин на балансі")
 	}
 
@@ -651,7 +670,16 @@ func (r *UserRepo) VerifyEmailCode(ctx context.Context, email, code string) erro
 }
 
 func (r *UserRepo) LinkEmail(ctx context.Context, userID, email string) error {
-	_, err := r.db.ExecContext(ctx, "UPDATE users SET email = $1 WHERE id = $2", email, userID)
+	// Викликається лише з confirmEmailVerification, уже після VerifyEmailCode,
+	// тобто пошта підтверджена кодом — ставимо email_verified, це знімає гейт
+	// на витрату хвилин (див. CreateDeal).
+	_, err := r.db.ExecContext(ctx, "UPDATE users SET email = $1, email_verified = true WHERE id = $2", email, userID)
+	return err
+}
+
+// SetEmailVerified — для Google-входу: провайдер уже звірив email_verified і aud.
+func (r *UserRepo) SetEmailVerified(ctx context.Context, userID string) error {
+	_, err := r.db.ExecContext(ctx, "UPDATE users SET email_verified = true WHERE id = $1", userID)
 	return err
 }
 

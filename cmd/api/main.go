@@ -54,6 +54,12 @@ func main() {
 		// а строк протухання додаємо (обидва IF NOT EXISTS / TYPE ідемпотентні)
 		`ALTER TABLE users ALTER COLUMN auth_code TYPE VARCHAR(10)`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_code_expires_at TIMESTAMPTZ`,
+		// Витрата хвилин лише з підтвердженого акаунта (заслін проти фарму).
+		// DEFAULT true при першому додаванні «дідусює» всіх наявних користувачів,
+		// далі дефолт false — нові акаунти мусять підтвердитись. Обидва кроки
+		// ідемпотентні: повторний ADD IF NOT EXISTS наявні рядки не чіпає.
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT true`,
+		`ALTER TABLE users ALTER COLUMN email_verified SET DEFAULT false`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_link_token VARCHAR(64)`,
 		// без цієї колонки кнопка бана в адмінці завжди відповідала помилкою
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE`,

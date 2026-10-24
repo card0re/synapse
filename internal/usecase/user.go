@@ -223,6 +223,10 @@ func (u *userUseCase) GoogleLogin(ctx context.Context, googleToken string) (stri
 		user.AvatarURL = &googleData.Picture
 	}
 
+	// Google підтвердив пошту (email_verified + aud звірені вище) — знімаємо
+	// гейт на витрату хвилин для цього акаунта.
+	u.repo.SetEmailVerified(ctx, user.ID)
+
 	// Єдиний вхід, який передає пошту далі: саме тут її підтвердив Google —
 	// вище звірено aud і email_verified. Тільки звідси можна отримати адмінку.
 	token, err := auth.GenerateToken(user.ID, googleData.Email)
