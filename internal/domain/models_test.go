@@ -20,6 +20,7 @@ func TestPublicViewDropsPersonalData(t *testing.T) {
 		BirthDate:      &birth,
 		BalanceMinutes: 120,
 		IsBanned:       true,
+		Role:           "admin",
 		Rating:         4.5,
 	}
 
@@ -44,6 +45,13 @@ func TestPublicViewDropsPersonalData(t *testing.T) {
 	}
 	if pub.IsBanned {
 		t.Error("PublicView лишив статус бана у відкритій відповіді")
+	}
+
+	// Роль прав не дає — їх виводить auth.EffectiveRole із підтвердженої
+	// пошти. Але у відкритому профілі вона показувала, який акаунт позначено
+	// адміністратором, тобто кого саме має сенс атакувати.
+	if pub.Role != "" {
+		t.Errorf("PublicView лишив роль %q — це вказівка на акаунт адміна", pub.Role)
 	}
 
 	if pub.Username != "someone" || pub.Rating != 4.5 {

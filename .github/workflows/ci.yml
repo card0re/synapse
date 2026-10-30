@@ -6,6 +6,40 @@ on:
   pull_request:
 
 jobs:
+  # Репозиторій публічний, і одного разу це вже коштувало витоку: ключ
+  # OAuth і живий refresh-токен лежали в історії, а адреса єдиного адміна —
+  # прямо в коді. Перевірка дешева і спрацьовує до того, як щось потрапить
+  # у main; ловить вона не все на світі, а те, що тут уже витікало.
+  secrets:
+    name: No secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Keys and tokens
+        run: |
+          pattern='AIza[0-9A-Za-z_-]{30,}|ghp_[0-9A-Za-z]{30,}|github_pat_[0-9A-Za-z_]{50,}|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[0-9A-Za-z-]{10,}|[0-9]{8,10}:AA[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY'
+          if git ls-files -z | xargs -0 grep -nEI "$pattern"; then
+            echo "::error::A key or token is committed. Rotate it first, then remove it — deleting the line does not remove it from history."
+            exit 1
+          fi
+
+      # Адреси живих людей у публічному репозиторії — це не тільки чужі
+      # персональні дані, а ще й готовий список цілей. Дозволені лише явні
+      # заглушки. Lock-файли й package.json не чіпаємо: там пошта авторів
+      # пакетів і рядки виду name@1.2.x, які схожі на адресу.
+      - name: Real email addresses
+        run: |
+          allowed='@example\.(com|org)|@demo\.synapse\.tel|@invalid|noreply@'
+          found=$(git ls-files -z -- . ':!*package-lock.json' ':!*go.sum' ':!*package.json' \
+            | xargs -0 grep -nhoEI "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" \
+            | grep -viE "$allowed" | sort -u)
+          if [ -n "$found" ]; then
+            echo "$found"
+            echo "::error::A real email address is committed. Use a placeholder; the real value belongs in Secret Manager or an env var."
+            exit 1
+          fi
+
   api:
     name: Go API
     runs-on: ubuntu-latest
