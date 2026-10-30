@@ -1,4 +1,7 @@
--- Розводить два акаунти з однаковою поштою <redacted-email>.
+-- Розводить два акаунти з однаковою поштою.
+--
+-- Адресу й id користувача прибрано: репозиторій публічний, а це персональні
+-- дані живої людини. Підставити реальні значення перед запуском.
 --
 -- Обидва порожні: ні навичок, ні угод, ні повідомлень, ні відгуків, в обох
 -- баланс 120 і пароль. Людина просто зареєструвалася двічі, причому перший
@@ -13,7 +16,7 @@
 -- потрапляє у випадковий із двох, а унікальний індекс не створюється.
 
 UPDATE users SET email = NULL
-WHERE id = '<redacted-id>' AND email IS NOT NULL
+WHERE id = '<older-duplicate-user-id>' AND email IS NOT NULL
 RETURNING id, username, created_at::date AS created, email;
 
 -- Тепер індекс стає без конфліктів. Та сама команда є у стартовому блоці
@@ -29,4 +32,4 @@ GROUP BY lower(email) HAVING count(*) > 1;
 
 SELECT id, username, created_at::date AS created, balance_minutes,
        password_hash IS NOT NULL AND password_hash <> '' AS has_pwd
-FROM users WHERE email = '<redacted-email>';
+FROM users WHERE email = '<duplicate-email>';
