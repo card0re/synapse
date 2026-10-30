@@ -12,7 +12,32 @@ import (
 	"time"
 )
 
+// wsTokenProtocol — мітка, за якою відрізняємо службовий елемент списку
+// підпротоколів від самого токена.
+const wsTokenProtocol = "bearer"
+
+// wsToken дістає токен із заголовка Sec-WebSocket-Protocol.
+//
+// Раніше він їхав у адресі (?token=...), а Cloud Run пише в логи повний адрес
+// запиту разом із параметрами — тобто кожне підключення до чату клало в
+// Cloud Logging діючий токен на 72 години, і будь-хто з доступом до логів
+// (чи до їх вивантаження) збирав готові ключі від акаунтів.
+//
+// Заголовки на WebSocket браузер ставити не дає, тож список підпротоколів —
+// єдиний спосіб передати токен поза адресою. Клієнт шле ["bearer", <токен>].
+func wsToken(r *http.Request) string {
+	for _, p := range websocket.Subprotocols(r) {
+		if p != wsTokenProtocol {
+			return p
+		}
+	}
+	return ""
+}
+
 var upgrader = websocket.Upgrader{
+	// Сервер мусить відповісти одним із запрошених підпротоколів, інакше
+	// браузер розриває з'єднання одразу після рукостискання.
+	Subprotocols: []string{wsTokenProtocol},
 	// Токен для WebSocket живе в localStorage і чужому сайту недоступний,
 	// але пускати апгрейд з будь-якого origin однаково нема потреби —
 	// список той самий, що й у CORS.
@@ -45,7 +70,7 @@ var rateLimiter = struct {
 }{lastMessage: make(map[string]time.Time)}
 
 func (h *Handler) WebSocketChat(c *gin.Context) {
-	tokenString := c.Query("token")
+	tokenString := wsToken(c.Request)
 	if tokenString == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Токен не надано"})
 		return

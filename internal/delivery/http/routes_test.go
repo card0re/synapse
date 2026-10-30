@@ -15,8 +15,9 @@ import (
 
 // Перевіряємо справжню таблицю маршрутів, а не окремий middleware: саме тут
 // колись загубилась перевірка власника на /users/profile/:userId і на угодах.
-// userUC = nil безпечний — якщо тест доходить до самої ручки, він падає з
-// паніки, і це теж сигнал, що маршрут не охороняється.
+// Стаб віддає лише те, що потрібно охороні (користувача, угоду, оголошення);
+// усе інше в ньому не визначене, тож дорога до самої ручки падає з паніки — і
+// це теж сигнал, що маршрут лишився без перевірки.
 func TestOwnedRoutesRejectOtherUsers(t *testing.T) {
 	t.Setenv("JWT_SECRET_KEY", testSecret)
 
@@ -39,7 +40,7 @@ func TestOwnedRoutesRejectOtherUsers(t *testing.T) {
 	}
 
 	router := gin.New()
-	NewHandler(nil).InitRoutes(router)
+	NewHandler(stubUseCase{}).InitRoutes(router)
 
 	for _, r := range owned {
 		t.Run(r.method+" "+r.path, func(t *testing.T) {
@@ -68,7 +69,7 @@ func TestAdminRoutesRejectPlainUser(t *testing.T) {
 	})
 
 	router := gin.New()
-	NewHandler(nil).InitRoutes(router)
+	NewHandler(stubUseCase{}).InitRoutes(router)
 
 	for _, path := range []string{"/api/admin/stats", "/api/admin/deals", "/api/admin/reports"} {
 		t.Run(path, func(t *testing.T) {
@@ -88,6 +89,13 @@ func TestAdminRoutesRejectPlainUser(t *testing.T) {
 // чужий урок (а разом із ним і переказати хвилини) або видалити чуже оголошення.
 type stubUseCase struct {
 	domain.UserUseCase
+}
+
+// RejectBanned читає користувача на кожному захищеному маршруті, тож без цього
+// стаба будь-який із них падає ще до ручки. Повертаємо незабаненого з тим самим
+// ID, який прийшов у токені.
+func (stubUseCase) GetUserByID(_ context.Context, id string) (*domain.User, error) {
+	return &domain.User{ID: id}, nil
 }
 
 func (stubUseCase) GetDealByID(context.Context, string) (*domain.Deal, error) {

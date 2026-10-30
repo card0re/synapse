@@ -12,9 +12,14 @@ import (
 	// дужкою ламала доставку цілком — Telegram відповідає помилкою розбору.
 	"html"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
+
+// Окремий клієнт, бо http.DefaultClient не має тайм-ауту: якщо Google відповідає
+// повільно, запити копичаться й вичерпують пул з'єднань до бази.
+var googleTokenInfoClient = &http.Client{Timeout: 5 * time.Second}
 
 // той самий client_id, що зашитий у frontend/src/main.tsx (GoogleOAuthProvider) —
 // не секрет, але без звірки aud будь-який чужий Google id_token пройде як свій
@@ -183,7 +188,15 @@ func (u *userUseCase) DeleteSkill(ctx context.Context, skillID string) error {
 }
 
 func (u *userUseCase) GoogleLogin(ctx context.Context, googleToken string) (string, *domain.User, error) {
-	resp, err := http.Get("https://oauth2.googleapis.com/tokeninfo?id_token=" + googleToken)
+	// http.Get ходить через DefaultClient, а в нього немає тайм-ауту взагалі:
+	// повільна відповідь Google підвішувала б запити доти, доки не скінчаться
+	// з'єднання до бази (пул на 10) і не ляже весь вхід.
+	//
+	// QueryEscape обов'язковий: токен приходить від клієнта, і без екранування
+	// символи з нього дописують власні параметри в наш запит.
+	resp, err := googleTokenInfoClient.Get(
+		"https://oauth2.googleapis.com/tokeninfo?id_token=" + url.QueryEscape(googleToken),
+	)
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return "", nil, errors.New("недійсний токен Google")
 	}

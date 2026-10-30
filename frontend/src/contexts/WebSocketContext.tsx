@@ -18,8 +18,11 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
         if (!userId || !token) return;
 
-        // 👇 ИСПРАВЛЕНИЕ: Теперь передаем token вместо user_id
-        const socket = new WebSocket(`${WS_URL}/ws?token=${token}`);
+        // Токен їде списком підпротоколів, а не в адресі: Cloud Run пише
+        // повний адрес запиту в логи, тож ?token=... складав туди діючі
+        // ключі від акаунтів. Заголовки на WebSocket браузер ставити не дає,
+        // і це єдиний спосіб передати токен поза адресою.
+        const socket = new WebSocket(`${WS_URL}/ws`, ["bearer", token]);
 
         socket.onopen = () => console.log("🟢 WS підключено (Global Context)");
 

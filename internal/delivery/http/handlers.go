@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -174,7 +175,7 @@ func (h *Handler) InitRoutes(router *gin.Engine) {
 
 		// 2. ЗАХИЩЕНІ МАРШРУТИ (жорстко вимагають Authorization: Bearer токен)
 		protected := api.Group("/")
-		protected.Use(AuthMiddleware())
+		protected.Use(AuthMiddleware(), h.RejectBanned(), RateLimitPerUser())
 		{
 			protected.GET("/news", h.GetNews)
 			// verify-email/send тепер за авторизацією: відкритий, він слав реальну
@@ -499,6 +500,13 @@ func (h *Handler) createReview(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Дякуємо за ваш відгук!"})
 }
 
+// timingEqualizerHash — справжній bcrypt-хеш від випадкового рядка. Потрібен
+// лише для того, щоб вхід із невідомою поштою витрачав стільки ж часу, скільки
+// з відомою: підсунути сюди щось несхоже на хеш не можна, bcrypt відкине його
+// миттєво й різниця в часі лишиться. Пароль від нього нікому не відомий і
+// збігтися не може.
+const timingEqualizerHash = "$2a$10$SNvVgCVEKYtNmyDKbiQkbuS2du5fsr4xfgPP7e4SDys59sltnvWPu"
+
 func (h *Handler) loginWithEmail(c *gin.Context) {
 	var input loginEmailInput
 	if err := c.BindJSON(&input); err != nil {
@@ -506,22 +514,37 @@ func (h *Handler) loginWithEmail(c *gin.Context) {
 		return
 	}
 
+	// Три випадки — такої пошти немає, акаунт без пароля, пароль не підійшов —
+	// мусять бути незрозумілі ззовні. Раніше їх розрізняли двома способами:
+	// окреме повідомлення «акаунт не має пароля» прямо підтверджувало, що
+	// адреса зареєстрована, а відповідь на невідому адресу приходила миттєво,
+	// бо bcrypt для неї не рахувався — різниця в сотню мілісекунд видно.
+	// Ключ — сама пошта, а не IP: інакше перебір обходиться підміною
+	// X-Forwarded-For, і лічильник у кожного з двадцяти інстансів свій.
+	attemptKey := strings.ToLower(strings.TrimSpace(input.Email))
+	if !loginAttempts.allow(attemptKey) {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Забагато спроб входу. Спробуйте за 15 хвилин."})
+		return
+	}
+
 	user, err := h.userUC.GetUserByEmail(c.Request.Context(), input.Email)
-	if err != nil {
+
+	stored := timingEqualizerHash
+	known := false
+	if err == nil && user != nil && user.PasswordHash != nil && *user.PasswordHash != "" {
+		stored = *user.PasswordHash
+		known = true
+	}
+
+	// Рахуємо завжди, навіть коли зрівнювати нема з чим.
+	match := bcrypt.CompareHashAndPassword([]byte(stored), []byte(input.Password)) == nil
+	if !known || !match {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный email или пароль"})
 		return
 	}
-
-	if user.PasswordHash == nil || *user.PasswordHash == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Цей акаунт не має пароля — увійдіть через Google або Telegram."})
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(input.Password))
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверный email или пароль"})
-		return
-	}
+	// Вдалий вхід обнуляє лічильник: інакше той, хто кілька разів помилився
+	// сам, лишався б замкненим на 15 хвилин уже після правильного пароля.
+	loginAttempts.reset(attemptKey)
 
 	if abortIfBanned(c, user) {
 		return

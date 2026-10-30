@@ -228,3 +228,81 @@ func TestAllowedOriginsIgnoresBlanks(t *testing.T) {
 		t.Error("без CORS_ORIGINS мають лишитись тільки два продакшн-origin")
 	}
 }
+
+// Бан мусить діяти одразу. Доти він читався лише при вході, а токен живе
+// 72 години — тобто забанений ще три доби користувався всім як раніше.
+func TestRejectBannedBlocksImmediately(t *testing.T) {
+	t.Setenv("JWT_SECRET_KEY", testSecret)
+	exp := time.Now().Add(time.Hour).Unix()
+	claims := jwt.MapClaims{"user_id": "u-1", "role": "user", "exp": exp}
+
+	for _, tc := range []struct {
+		name string
+		user *domain.User
+		want int
+	}{
+		{"звичайний користувач проходить", &domain.User{ID: "u-1"}, http.StatusOK},
+		{"забанений — 403", &domain.User{ID: "u-1", IsBanned: true}, http.StatusForbidden},
+		{"видалений акаунт — 401", nil, http.StatusUnauthorized},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := NewHandler(adminStub{user: tc.user})
+
+			r := gin.New()
+			r.GET("/x", AuthMiddleware(), h.RejectBanned(), func(c *gin.Context) { c.Status(http.StatusOK) })
+			req := httptest.NewRequest(http.MethodGet, "/x", nil)
+			req.Header.Set("Authorization", "Bearer "+sign(t, jwt.SigningMethodHS256, []byte(testSecret), claims))
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, req)
+
+			if w.Code != tc.want {
+				t.Errorf("отримано %d, очікувалось %d", w.Code, tc.want)
+			}
+		})
+	}
+}
+
+// Лічильник спроб. Ключ тут важливіший за саму логіку: по IP перебір
+// обходиться підміною заголовка, тому вхід рахується по самій пошті.
+func TestLimiterCountsPerKey(t *testing.T) {
+	l := newLimiter(2, time.Minute)
+
+	if !l.allow("a") || !l.allow("a") {
+		t.Fatal("перші дві спроби мали пройти")
+	}
+	if l.allow("a") {
+		t.Error("третя спроба пройшла, хоча ліміт два")
+	}
+	if !l.allow("b") {
+		t.Error("інший ключ має власний лічильник")
+	}
+
+	// Вдалий вхід обнуляє лічильник, інакше людина лишається замкненою вже
+	// після правильного пароля.
+	l.reset("a")
+	if !l.allow("a") {
+		t.Error("після reset лічильник мав початись наново")
+	}
+
+	// Порожній ключ рахувати нема за чим — такий запит віддається іншим заслонам.
+	short := newLimiter(1, time.Minute)
+	if !short.allow("") || !short.allow("") {
+		t.Error("порожній ключ не повинен блокуватись")
+	}
+}
+
+// Вікно: після того, як воно минуло, лічильник починається наново.
+func TestLimiterForgetsAfterWindow(t *testing.T) {
+	l := newLimiter(1, time.Millisecond)
+
+	if !l.allow("a") {
+		t.Fatal("перша спроба мала пройти")
+	}
+	if l.allow("a") {
+		t.Fatal("друга спроба в тому ж вікні мала впертись у ліміт")
+	}
+	time.Sleep(5 * time.Millisecond)
+	if !l.allow("a") {
+		t.Error("після вікна лічильник мав скинутись")
+	}
+}
